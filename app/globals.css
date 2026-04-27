@@ -368,3 +368,60 @@ tr.leader td { font-weight: 700; }
   font-size: 1.2rem;
   color: var(--text-muted);
 }
+
+
+/* Admin */
+.admin-badge {
+  display: inline-block;
+  background: var(--warning);
+  color: #000;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.btn-download, .btn-copy {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-download {
+  background: var(--success);
+  color: #000;
+}
+.btn-download:hover { background: #16a34a; }
+
+.btn-copy {
+  background: var(--primary);
+  color: white;
+}
+.btn-copy:hover { background: var(--primary-hover); }
+
+.save-indicator {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.unsaved-indicator {
+  color: var(--warning);
+  font-weight: 600;
+  font-size: 0.85rem;
+}

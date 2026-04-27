@@ -1,0 +1,140 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import Fixture from '../components/Fixture'
+import Standings from '../components/Standings'
+import Stats from '../components/Stats'
+import { generateFixture, calcStandings } from '../lib/fixture'
+
+export default function AdminPage() {
+  const [players, setPlayers] = useState([])
+  const [fixture, setFixture] = useState([])
+  const [activeTab, setActiveTab] = useState('fixture')
+  const [loading, setLoading] = useState(true)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    fetch('/data.json')
+      .then(r => r.json())
+      .then(data => {
+        setPlayers(data.players)
+        setFixture(data.fixture?.length > 0 ? data.fixture : generateFixture(data.players))
+        setLoading(false)
+      })
+  }, [])
+
+  const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
+
+  const handleResult = (roundIdx, matchIdx, homeGoals, awayGoals) => {
+    setFixture(prev => {
+      const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
+      next[roundIdx].matches[matchIdx] = {
+        ...next[roundIdx].matches[matchIdx],
+        homeGoals,
+        awayGoals,
+        played: true,
+      }
+      return next
+    })
+    setSaved(false)
+  }
+
+  const handleReset = (roundIdx, matchIdx) => {
+    setFixture(prev => {
+      const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
+      next[roundIdx].matches[matchIdx] = {
+        ...next[roundIdx].matches[matchIdx],
+        homeGoals: null,
+        awayGoals: null,
+        played: false,
+      }
+      return next
+    })
+    setSaved(false)
+  }
+
+  const handleResetAll = () => {
+    setFixture(generateFixture(players))
+    setSaved(false)
+  }
+
+  const downloadJSON = () => {
+    const data = { players, fixture }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'data.json'
+    a.click()
+    URL.revokeObjectURL(url)
+    setSaved(true)
+  }
+
+  const copyJSON = () => {
+    const data = { players, fixture }
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2))
+    setSaved(true)
+  }
+
+  if (loading) {
+    return <div className="app"><div className="loading">Cargando torneo...</div></div>
+  }
+
+  const totalMatches = fixture.reduce((acc, r) => acc + r.matches.length, 0)
+  const playedMatches = fixture.reduce((acc, r) => acc + r.matches.filter(m => m.played).length, 0)
+  const progress = totalMatches > 0 ? Math.round((playedMatches / totalMatches) * 100) : 0
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="admin-badge">🔒 ADMIN</div>
+        <h1>⚽ Torneo Todos vs Todos</h1>
+        <p className="subtitle">{players.length} jugadores · {totalMatches} partidos · Round Robin</p>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+          <span className="progress-text">{playedMatches}/{totalMatches} jugados ({progress}%)</span>
+        </div>
+      </header>
+
+      <div className="admin-actions">
+        <button className="btn-download" onClick={downloadJSON}>
+          📥 Descargar data.json
+        </button>
+        <button className="btn-copy" onClick={copyJSON}>
+          📋 Copiar JSON
+        </button>
+        {saved && <span className="save-indicator">✅ Listo</span>}
+        {!saved && playedMatches > 0 && <span className="unsaved-indicator">⚠️ Cambios sin exportar</span>}
+      </div>
+
+      <nav className="tabs">
+        {[
+          { key: 'fixture', label: '📋 Fixture' },
+          { key: 'standings', label: '🏆 Posiciones' },
+          { key: 'stats', label: '📊 Estadísticas' },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            className={`tab ${activeTab === tab.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="content">
+        {activeTab === 'fixture' && (
+          <Fixture
+            fixture={fixture}
+            onResult={handleResult}
+            onReset={handleReset}
+            onResetAll={handleResetAll}
+          />
+        )}
+        {activeTab === 'standings' && <Standings standings={standings} />}
+        {activeTab === 'stats' && <Stats fixture={fixture} standings={standings} />}
+      </main>
+    </div>
+  )
+}
