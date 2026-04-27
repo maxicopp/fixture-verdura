@@ -88,7 +88,7 @@ export default function AdminPage() {
     <div className="app">
       <header className="header">
         <div className="admin-badge">🔒 ADMIN</div>
-        <h1>⚽ Torneo Los Verduras Apertura 2026</h1>
+        <h1><img src="/football.svg" alt="⚽" className="title-icon" /> Torneo Los Verduras Apertura 2026</h1>
         <p className="subtitle">{players.length} jugadores · {totalMatches} partidos · Round Robin</p>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />

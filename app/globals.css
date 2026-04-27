@@ -425,3 +425,12 @@ tr.leader td { font-weight: 700; }
   font-weight: 600;
   font-size: 0.85rem;
 }
+
+
+.title-icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  margin-right: 4px;
+}
