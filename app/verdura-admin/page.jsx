@@ -13,23 +13,35 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [mountKey, setMountKey] = useState(0)
+  const [notification, setNotification] = useState('')
   const fileInputRef = useRef(null)
 
-  // Refs para tener siempre el valor fresco en callbacks
+  // Refs para tener siempre el valor fresco en callbacks sin stale closures
   const playersRef = useRef([])
   const fixtureRef = useRef([])
-
   useEffect(() => { playersRef.current = players }, [players])
   useEffect(() => { fixtureRef.current = fixture }, [fixture])
+
+  const notify = (msg) => {
+    setNotification(msg)
+    setTimeout(() => setNotification(''), 3000)
+  }
+
+  const loadData = (data) => {
+    const p = data.players || []
+    const f = Array.isArray(data.fixture) && data.fixture.length > 0
+      ? data.fixture
+      : generateFixture(p)
+    setPlayers(p)
+    setFixture(f)
+    setMountKey(k => k + 1)
+  }
 
   useEffect(() => {
     fetch('/data.json', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
-        const p = data.players || []
-        const f = data.fixture?.length > 0 ? data.fixture : generateFixture(p)
-        setPlayers(p)
-        setFixture(f)
+        loadData(data)
         setLoading(false)
       })
   }, [])
@@ -58,13 +70,12 @@ export default function AdminPage() {
   const handleResetAll = useCallback(() => {
     if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
     const currentPlayers = playersRef.current
-    // Copiar JSON vacío usando los players actuales del ref
-    const emptyData = JSON.stringify({ players: currentPlayers, fixture: [] }, null, 2)
-    navigator.clipboard.writeText(emptyData)
+    const emptyData = { players: currentPlayers, fixture: [] }
+    navigator.clipboard.writeText(JSON.stringify(emptyData, null, 2))
     setFixture(generateFixture(currentPlayers))
     setMountKey(k => k + 1)
     setSaved(true)
-    alert('🔄 Fixture reiniciado. JSON vacío copiado al clipboard.')
+    notify('🔄 Fixture reiniciado. JSON vacío copiado al clipboard.')
   }, [])
 
   const downloadJSON = useCallback(() => {
@@ -77,13 +88,14 @@ export default function AdminPage() {
     a.click()
     URL.revokeObjectURL(url)
     setSaved(true)
+    notify('📥 data.json descargado')
   }, [])
 
   const copyJSON = useCallback(() => {
     const data = { players: playersRef.current, fixture: fixtureRef.current }
     navigator.clipboard.writeText(JSON.stringify(data, null, 2))
     setSaved(true)
-    alert('📋 JSON con datos actuales copiado al clipboard')
+    notify('📋 JSON copiado al clipboard')
   }, [])
 
   const importJSON = (e) => {
@@ -92,27 +104,20 @@ export default function AdminPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target.result)
+        const raw = ev.target.result
+        const data = JSON.parse(raw)
         if (!data.players || !Array.isArray(data.players)) {
-          alert('❌ JSON inválido: falta el campo "players"')
+          notify('❌ JSON inválido: falta el campo "players"')
           return
         }
-        const newPlayers = data.players
-        const newFixture = Array.isArray(data.fixture) && data.fixture.length > 0
-          ? data.fixture
-          : generateFixture(newPlayers)
-        // Actualizar estado y forzar remount completo
-        setPlayers(newPlayers)
-        setFixture(newFixture)
-        setMountKey(k => k + 1)
+        loadData(data)
         setSaved(false)
-        alert(`✅ Importado: ${newPlayers.length} jugadores, ${newFixture.length} fechas`)
+        notify(`✅ Importado: ${data.players.length} jugadores`)
       } catch (err) {
-        alert('❌ Error al parsear el JSON: ' + err.message)
+        notify('❌ Error al parsear el JSON: ' + err.message)
       }
     }
     reader.readAsText(file)
-    // Reset input para permitir importar el mismo archivo de nuevo
     e.target.value = ''
   }
 
@@ -147,8 +152,8 @@ export default function AdminPage() {
         <button className="btn-copy" onClick={copyJSON}>
           📋 Copiar JSON
         </button>
-        {saved && <span className="save-indicator">✅ Listo</span>}
-        {!saved && playedMatches > 0 && <span className="unsaved-indicator">⚠️ Cambios sin exportar</span>}
+        {notification && <span className={notification.startsWith('❌') ? 'unsaved-indicator' : 'save-indicator'}>{notification}</span>}
+        {!notification && !saved && playedMatches > 0 && <span className="unsaved-indicator">⚠️ Cambios sin exportar</span>}
       </div>
 
       <nav className="tabs">
@@ -165,13 +170,7 @@ export default function AdminPage() {
 
       <main className="content">
         {activeTab === 'fixture' && (
-          <Fixture
-            key={mountKey}
-            fixture={fixture}
-            onResult={handleResult}
-            onReset={handleReset}
-            onResetAll={handleResetAll}
-          />
+          <Fixture key={mountKey} fixture={fixture} onResult={handleResult} onReset={handleReset} onResetAll={handleResetAll} />
         )}
         {activeTab === 'standings' && <Standings key={mountKey} standings={standings} />}
         {activeTab === 'stats' && <Stats key={mountKey} fixture={fixture} standings={standings} />}
