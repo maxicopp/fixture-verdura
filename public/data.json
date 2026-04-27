@@ -15,25 +15,25 @@
           "id": "0-0",
           "home": "Max",
           "away": "Negro",
-          "homeGoals": 20,
-          "awayGoals": 0,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         },
         {
           "id": "0-1",
           "home": "Gayco",
           "away": "Kevin",
-          "homeGoals": 0,
-          "awayGoals": 4,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         },
         {
           "id": "0-2",
           "home": "Vulvega",
           "away": "Nacho",
-          "homeGoals": 0,
-          "awayGoals": 0,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         }
       ]
     },
@@ -44,25 +44,25 @@
           "id": "1-0",
           "home": "Max",
           "away": "Kevin",
-          "homeGoals": 10,
-          "awayGoals": 0,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         },
         {
           "id": "1-1",
           "home": "Negro",
           "away": "Nacho",
-          "homeGoals": 0,
-          "awayGoals": 2,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         },
         {
           "id": "1-2",
           "home": "Gayco",
           "away": "Vulvega",
-          "homeGoals": 0,
-          "awayGoals": 3,
-          "played": true
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
         }
       ]
     },
