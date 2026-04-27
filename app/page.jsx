@@ -98,9 +98,15 @@ function FixtureReadOnly({ fixture }) {
                     return (
                       <div key={match.id} className="match-card pending">
                         <div className="match-teams">
-                          <span className="team">{match.home}</span>
+                          <span className="team team-home">
+                            {match.home}
+                            <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+                          </span>
                           <span className="score" style={{ color: 'var(--text-muted)' }}>vs</span>
-                          <span className="team">{match.away}</span>
+                          <span className="team team-away">
+                            <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+                            {match.away}
+                          </span>
                         </div>
                       </div>
                     )
@@ -111,9 +117,15 @@ function FixtureReadOnly({ fixture }) {
                   return (
                     <div key={match.id} className={`match-card played ${draw ? 'draw' : ''}`}>
                       <div className="match-teams">
-                        <span className={`team ${homeWin ? 'winner' : ''}`}>{match.home}</span>
+                        <span className={`team team-home ${homeWin ? 'winner' : ''}`}>
+                          {match.home}
+                          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+                        </span>
                         <span className="score">{match.homeGoals} - {match.awayGoals}</span>
-                        <span className={`team ${awayWin ? 'winner' : ''}`}>{match.away}</span>
+                        <span className={`team team-away ${awayWin ? 'winner' : ''}`}>
+                          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+                          {match.away}
+                        </span>
                       </div>
                     </div>
                   )

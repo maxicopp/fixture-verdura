@@ -175,10 +175,19 @@ body {
 .team {
   font-weight: 600;
   font-size: 0.95rem;
-  min-width: 80px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.team:first-child { text-align: right; }
-.team:last-child { text-align: left; }
+.team-home {
+  justify-content: flex-end;
+  text-align: right;
+}
+.team-away {
+  justify-content: flex-start;
+  text-align: left;
+}
 .team.winner { color: var(--success); }
 
 .score {

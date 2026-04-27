@@ -41,9 +41,15 @@ function MatchCard({ match, onSave, onReset }) {
     return (
       <div className={`match-card played ${draw ? 'draw' : ''}`}>
         <div className="match-teams">
-          <span className={`team ${homeWin ? 'winner' : ''}`}>{match.home}</span>
+          <span className={`team team-home ${homeWin ? 'winner' : ''}`}>
+            {match.home}
+            <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+          </span>
           <span className="score">{match.homeGoals} - {match.awayGoals}</span>
-          <span className={`team ${awayWin ? 'winner' : ''}`}>{match.away}</span>
+          <span className={`team team-away ${awayWin ? 'winner' : ''}`}>
+            <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+            {match.away}
+          </span>
         </div>
         <div className="match-actions">
           <button className="btn-sm" onClick={() => setEditing(true)}>✏️</button>
@@ -56,7 +62,10 @@ function MatchCard({ match, onSave, onReset }) {
   return (
     <div className="match-card pending">
       <div className="match-teams">
-        <span className="team">{match.home}</span>
+        <span className="team team-home">
+          {match.home}
+          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+        </span>
         <div className="score-input">
           <input
             type="number"
@@ -74,7 +83,10 @@ function MatchCard({ match, onSave, onReset }) {
             onChange={e => setAg(e.target.value)}
           />
         </div>
-        <span className="team">{match.away}</span>
+        <span className="team team-away">
+          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+          {match.away}
+        </span>
       </div>
       <div className="match-actions">
         <button className="btn-save" onClick={handleSave}>💾 Guardar</button>
