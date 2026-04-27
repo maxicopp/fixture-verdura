@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Fixture from '../components/Fixture'
 import Standings from '../components/Standings'
 import Stats from '../components/Stats'
@@ -12,15 +12,24 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('fixture')
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
-  const [fixtureKey, setFixtureKey] = useState(0)
+  const [mountKey, setMountKey] = useState(0)
   const fileInputRef = useRef(null)
 
+  // Refs para tener siempre el valor fresco en callbacks
+  const playersRef = useRef([])
+  const fixtureRef = useRef([])
+
+  useEffect(() => { playersRef.current = players }, [players])
+  useEffect(() => { fixtureRef.current = fixture }, [fixture])
+
   useEffect(() => {
-    fetch('/data.json')
+    fetch('/data.json', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
-        setPlayers(data.players)
-        setFixture(data.fixture?.length > 0 ? data.fixture : generateFixture(data.players))
+        const p = data.players || []
+        const f = data.fixture?.length > 0 ? data.fixture : generateFixture(p)
+        setPlayers(p)
+        setFixture(f)
         setLoading(false)
       })
   }, [])
@@ -30,12 +39,7 @@ export default function AdminPage() {
   const handleResult = (roundIdx, matchIdx, homeGoals, awayGoals) => {
     setFixture(prev => {
       const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
-      next[roundIdx].matches[matchIdx] = {
-        ...next[roundIdx].matches[matchIdx],
-        homeGoals,
-        awayGoals,
-        played: true,
-      }
+      next[roundIdx].matches[matchIdx] = { ...next[roundIdx].matches[matchIdx], homeGoals, awayGoals, played: true }
       return next
     })
     setSaved(false)
@@ -44,30 +48,27 @@ export default function AdminPage() {
   const handleReset = (roundIdx, matchIdx) => {
     setFixture(prev => {
       const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
-      next[roundIdx].matches[matchIdx] = {
-        ...next[roundIdx].matches[matchIdx],
-        homeGoals: null,
-        awayGoals: null,
-        played: false,
-      }
+      next[roundIdx].matches[matchIdx] = { ...next[roundIdx].matches[matchIdx], homeGoals: null, awayGoals: null, played: false }
       return next
     })
     setSaved(false)
-    setFixtureKey(k => k + 1)
+    setMountKey(k => k + 1)
   }
 
-  const handleResetAll = () => {
+  const handleResetAll = useCallback(() => {
     if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
-    const emptyData = { players, fixture: [] }
-    navigator.clipboard.writeText(JSON.stringify(emptyData, null, 2))
-    setFixture(generateFixture(players))
-    setFixtureKey(k => k + 1)
+    const currentPlayers = playersRef.current
+    // Copiar JSON vacío usando los players actuales del ref
+    const emptyData = JSON.stringify({ players: currentPlayers, fixture: [] }, null, 2)
+    navigator.clipboard.writeText(emptyData)
+    setFixture(generateFixture(currentPlayers))
+    setMountKey(k => k + 1)
     setSaved(true)
     alert('🔄 Fixture reiniciado. JSON vacío copiado al clipboard.')
-  }
+  }, [])
 
-  const downloadJSON = () => {
-    const data = { players, fixture }
+  const downloadJSON = useCallback(() => {
+    const data = { players: playersRef.current, fixture: fixtureRef.current }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -76,14 +77,14 @@ export default function AdminPage() {
     a.click()
     URL.revokeObjectURL(url)
     setSaved(true)
-  }
+  }, [])
 
-  const copyJSON = () => {
-    const data = { players, fixture }
+  const copyJSON = useCallback(() => {
+    const data = { players: playersRef.current, fixture: fixtureRef.current }
     navigator.clipboard.writeText(JSON.stringify(data, null, 2))
     setSaved(true)
     alert('📋 JSON con datos actuales copiado al clipboard')
-  }
+  }, [])
 
   const importJSON = (e) => {
     const file = e.target.files?.[0]
@@ -92,24 +93,26 @@ export default function AdminPage() {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result)
-        if (data.players) {
-          setPlayers(data.players)
-          if (data.fixture && data.fixture.length > 0) {
-            setFixture(data.fixture)
-          } else {
-            setFixture(generateFixture(data.players))
-          }
-          setFixtureKey(k => k + 1)
-          setSaved(false)
-          alert('✅ Datos importados correctamente')
-        } else {
-          alert('❌ El JSON no tiene el formato correcto (necesita al menos "players")')
+        if (!data.players || !Array.isArray(data.players)) {
+          alert('❌ JSON inválido: falta el campo "players"')
+          return
         }
-      } catch {
-        alert('❌ Error al leer el archivo JSON')
+        const newPlayers = data.players
+        const newFixture = Array.isArray(data.fixture) && data.fixture.length > 0
+          ? data.fixture
+          : generateFixture(newPlayers)
+        // Actualizar estado y forzar remount completo
+        setPlayers(newPlayers)
+        setFixture(newFixture)
+        setMountKey(k => k + 1)
+        setSaved(false)
+        alert(`✅ Importado: ${newPlayers.length} jugadores, ${newFixture.length} fechas`)
+      } catch (err) {
+        alert('❌ Error al parsear el JSON: ' + err.message)
       }
     }
     reader.readAsText(file)
+    // Reset input para permitir importar el mismo archivo de nuevo
     e.target.value = ''
   }
 
@@ -137,13 +140,7 @@ export default function AdminPage() {
         <button className="btn-import" onClick={() => fileInputRef.current?.click()}>
           📂 Importar JSON
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={importJSON}
-          style={{ display: 'none' }}
-        />
+        <input ref={fileInputRef} type="file" accept=".json" onChange={importJSON} style={{ display: 'none' }} />
         <button className="btn-download" onClick={downloadJSON}>
           📥 Descargar data.json
         </button>
@@ -160,11 +157,7 @@ export default function AdminPage() {
           { key: 'standings', label: '🏆 Posiciones' },
           { key: 'stats', label: '📊 Estadísticas' },
         ].map(tab => (
-          <button
-            key={tab.key}
-            className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
+          <button key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)}>
             {tab.label}
           </button>
         ))}
@@ -173,15 +166,15 @@ export default function AdminPage() {
       <main className="content">
         {activeTab === 'fixture' && (
           <Fixture
-            key={fixtureKey}
+            key={mountKey}
             fixture={fixture}
             onResult={handleResult}
             onReset={handleReset}
             onResetAll={handleResetAll}
           />
         )}
-        {activeTab === 'standings' && <Standings standings={standings} />}
-        {activeTab === 'stats' && <Stats fixture={fixture} standings={standings} />}
+        {activeTab === 'standings' && <Standings key={mountKey} standings={standings} />}
+        {activeTab === 'stats' && <Stats key={mountKey} fixture={fixture} standings={standings} />}
       </main>
     </div>
   )
