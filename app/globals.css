@@ -401,7 +401,7 @@ tr.leader td { font-weight: 700; }
   flex-wrap: wrap;
 }
 
-.btn-download, .btn-copy {
+.btn-download, .btn-copy, .btn-import {
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
@@ -410,6 +410,12 @@ tr.leader td { font-weight: 700; }
   cursor: pointer;
   transition: all 0.2s;
 }
+
+.btn-import {
+  background: var(--warning);
+  color: #000;
+}
+.btn-import:hover { background: #d97706; }
 
 .btn-download {
   background: var(--success);

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Fixture from '../components/Fixture'
 import Standings from '../components/Standings'
 import Stats from '../components/Stats'
@@ -12,6 +12,8 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('fixture')
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
+  const [fixtureKey, setFixtureKey] = useState(0)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetch('/data.json')
@@ -51,11 +53,14 @@ export default function AdminPage() {
       return next
     })
     setSaved(false)
+    setFixtureKey(k => k + 1)
   }
 
   const handleResetAll = () => {
+    if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
     setFixture(generateFixture(players))
     setSaved(false)
+    setFixtureKey(k => k + 1)
   }
 
   const downloadJSON = () => {
@@ -74,6 +79,30 @@ export default function AdminPage() {
     const data = { players, fixture }
     navigator.clipboard.writeText(JSON.stringify(data, null, 2))
     setSaved(true)
+  }
+
+  const importJSON = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (data.players && data.fixture) {
+          setPlayers(data.players)
+          setFixture(data.fixture)
+          setFixtureKey(k => k + 1)
+          setSaved(false)
+          alert('✅ Datos importados correctamente')
+        } else {
+          alert('❌ El JSON no tiene el formato correcto (necesita "players" y "fixture")')
+        }
+      } catch {
+        alert('❌ Error al leer el archivo JSON')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   if (loading) {
@@ -97,6 +126,16 @@ export default function AdminPage() {
       </header>
 
       <div className="admin-actions">
+        <button className="btn-import" onClick={() => fileInputRef.current?.click()}>
+          📂 Importar JSON
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={importJSON}
+          style={{ display: 'none' }}
+        />
         <button className="btn-download" onClick={downloadJSON}>
           📥 Descargar data.json
         </button>
@@ -126,6 +165,7 @@ export default function AdminPage() {
       <main className="content">
         {activeTab === 'fixture' && (
           <Fixture
+            key={fixtureKey}
             fixture={fixture}
             onResult={handleResult}
             onReset={handleReset}

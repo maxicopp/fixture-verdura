@@ -1,4 +1,157 @@
 {
-  "players": ["Max", "Gayco", "Vulvega", "Nacho", "Kevin", "Negro"],
-  "fixture": []
+  "players": [
+    "Max",
+    "Gayco",
+    "Vulvega",
+    "Nacho",
+    "Kevin",
+    "Negro"
+  ],
+  "fixture": [
+    {
+      "round": 1,
+      "matches": [
+        {
+          "id": "0-0",
+          "home": "Max",
+          "away": "Negro",
+          "homeGoals": 10,
+          "awayGoals": 0,
+          "played": true
+        },
+        {
+          "id": "0-1",
+          "home": "Gayco",
+          "away": "Kevin",
+          "homeGoals": 0,
+          "awayGoals": 2,
+          "played": true
+        },
+        {
+          "id": "0-2",
+          "home": "Vulvega",
+          "away": "Nacho",
+          "homeGoals": 0,
+          "awayGoals": 0,
+          "played": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "matches": [
+        {
+          "id": "1-0",
+          "home": "Max",
+          "away": "Kevin",
+          "homeGoals": 0,
+          "awayGoals": 0,
+          "played": true
+        },
+        {
+          "id": "1-1",
+          "home": "Negro",
+          "away": "Nacho",
+          "homeGoals": 10,
+          "awayGoals": 0,
+          "played": true
+        },
+        {
+          "id": "1-2",
+          "home": "Gayco",
+          "away": "Vulvega",
+          "homeGoals": 0,
+          "awayGoals": 4,
+          "played": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "matches": [
+        {
+          "id": "2-0",
+          "home": "Max",
+          "away": "Nacho",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "2-1",
+          "home": "Kevin",
+          "away": "Vulvega",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "2-2",
+          "home": "Negro",
+          "away": "Gayco",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "matches": [
+        {
+          "id": "3-0",
+          "home": "Max",
+          "away": "Vulvega",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "3-1",
+          "home": "Nacho",
+          "away": "Gayco",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "3-2",
+          "home": "Kevin",
+          "away": "Negro",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "matches": [
+        {
+          "id": "4-0",
+          "home": "Max",
+          "away": "Gayco",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "4-1",
+          "home": "Vulvega",
+          "away": "Negro",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        },
+        {
+          "id": "4-2",
+          "home": "Nacho",
+          "away": "Kevin",
+          "homeGoals": null,
+          "awayGoals": null,
+          "played": false
+        }
+      ]
+    }
+  ]
 }
