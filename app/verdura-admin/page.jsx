@@ -58,9 +58,13 @@ export default function AdminPage() {
 
   const handleResetAll = () => {
     if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
-    setFixture(generateFixture(players))
-    setSaved(false)
+    const fresh = generateFixture(players)
+    setFixture(fresh)
     setFixtureKey(k => k + 1)
+    // Copiar al clipboard el JSON inicial sin datos
+    const emptyData = { players, fixture: [] }
+    navigator.clipboard.writeText(JSON.stringify(emptyData, null, 2))
+    setSaved(true)
   }
 
   const downloadJSON = () => {
@@ -88,14 +92,18 @@ export default function AdminPage() {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result)
-        if (data.players && data.fixture) {
+        if (data.players) {
           setPlayers(data.players)
-          setFixture(data.fixture)
+          if (data.fixture && data.fixture.length > 0) {
+            setFixture(data.fixture)
+          } else {
+            setFixture(generateFixture(data.players))
+          }
           setFixtureKey(k => k + 1)
           setSaved(false)
           alert('✅ Datos importados correctamente')
         } else {
-          alert('❌ El JSON no tiene el formato correcto (necesita "players" y "fixture")')
+          alert('❌ El JSON no tiene el formato correcto (necesita al menos "players")')
         }
       } catch {
         alert('❌ Error al leer el archivo JSON')
