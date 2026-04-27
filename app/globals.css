@@ -434,3 +434,35 @@ tr.leader td { font-weight: 700; }
   vertical-align: middle;
   margin-right: 4px;
 }
+
+
+/* Avatars */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  vertical-align: middle;
+  margin-right: 8px;
+  border: 2px solid var(--border);
+}
+
+.stat-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 6px auto;
+  border: 2px solid var(--primary);
+}
+
+.chart-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-name {
+  display: flex;
+  align-items: center;
+}

@@ -74,6 +74,7 @@ export default function Stats({ fixture, standings }) {
         {topScorer && topScorer.gf > 0 && (
           <div className="stat-card highlight">
             <div className="stat-icon">👑</div>
+            <img src={`/players/${topScorer.name.toLowerCase()}.png`} alt={topScorer.name} className="stat-avatar" />
             <div className="stat-value">{topScorer.name}</div>
             <div className="stat-label">Goleador</div>
             <div className="stat-sub">{topScorer.gf} goles</div>
@@ -82,6 +83,7 @@ export default function Stats({ fixture, standings }) {
         {bestDefense && bestDefense.pj > 0 && (
           <div className="stat-card">
             <div className="stat-icon">🧤</div>
+            <img src={`/players/${bestDefense.name.toLowerCase()}.png`} alt={bestDefense.name} className="stat-avatar" />
             <div className="stat-value">{bestDefense.name}</div>
             <div className="stat-label">Mejor defensa</div>
             <div className="stat-sub">{bestDefense.gc} goles recibidos</div>
@@ -106,6 +108,7 @@ export default function Stats({ fixture, standings }) {
         {bestStreak && bestStreak[1].max > 0 && (
           <div className="stat-card">
             <div className="stat-icon">🏃</div>
+            <img src={`/players/${bestStreak[0].toLowerCase()}.png`} alt={bestStreak[0]} className="stat-avatar" />
             <div className="stat-value">{bestStreak[0]}</div>
             <div className="stat-label">Mejor racha invicta</div>
             <div className="stat-sub">{bestStreak[1].max} partidos sin perder</div>
@@ -117,7 +120,10 @@ export default function Stats({ fixture, standings }) {
       <div className="goals-chart">
         {[...standings].sort((a, b) => b.gf - a.gf).map(s => (
           <div key={s.name} className="chart-row">
-            <span className="chart-label">{s.name}</span>
+            <span className="chart-label">
+              <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className="avatar" />
+              {s.name}
+            </span>
             <div className="chart-bar-container">
               <div
                 className="chart-bar"

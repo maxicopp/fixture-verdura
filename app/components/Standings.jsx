@@ -26,7 +26,10 @@ export default function Standings({ standings }) {
                 <td className="pos">
                   {i === 0 && s.pts > 0 ? '🥇' : i === 1 && s.pts > 0 ? '🥈' : i === 2 && s.pts > 0 ? '🥉' : i + 1}
                 </td>
-                <td className="player-name">{s.name}</td>
+                <td className="player-name">
+                  <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className="avatar" />
+                  {s.name}
+                </td>
                 <td>{s.pj}</td>
                 <td>{s.pg}</td>
                 <td>{s.pe}</td>
