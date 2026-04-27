@@ -58,13 +58,12 @@ export default function AdminPage() {
 
   const handleResetAll = () => {
     if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
-    const fresh = generateFixture(players)
-    setFixture(fresh)
-    setFixtureKey(k => k + 1)
-    // Copiar al clipboard el JSON inicial sin datos
     const emptyData = { players, fixture: [] }
     navigator.clipboard.writeText(JSON.stringify(emptyData, null, 2))
+    setFixture(generateFixture(players))
+    setFixtureKey(k => k + 1)
     setSaved(true)
+    alert('🔄 Fixture reiniciado. JSON vacío copiado al clipboard.')
   }
 
   const downloadJSON = () => {
@@ -83,6 +82,7 @@ export default function AdminPage() {
     const data = { players, fixture }
     navigator.clipboard.writeText(JSON.stringify(data, null, 2))
     setSaved(true)
+    alert('📋 JSON con datos actuales copiado al clipboard')
   }
 
   const importJSON = (e) => {
