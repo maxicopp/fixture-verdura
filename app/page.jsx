@@ -35,7 +35,7 @@ export default function Home() {
     <div className="app">
       <header className="header">
         <h1>Torneo Los Verduras Apertura 2026</h1>
-        <p className="subtitle">{players.length} jugadores · {totalMatches} partidos · Round Robin</p>
+        <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
           <span className="progress-text">{playedMatches}/{totalMatches} jugados ({progress}%)</span>

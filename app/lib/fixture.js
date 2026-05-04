@@ -3,6 +3,7 @@ export function generateFixture(players) {
   const rounds = []
   const list = [...players]
 
+  // Ronda de ida
   for (let round = 0; round < n - 1; round++) {
     const matches = []
     for (let i = 0; i < n / 2; i++) {
@@ -18,6 +19,22 @@ export function generateFixture(players) {
     rounds.push({ round: round + 1, matches })
     list.splice(1, 0, list.pop())
   }
+
+  // Ronda de vuelta: mismos partidos con local/visitante invertidos
+  const idaRounds = rounds.length
+  for (let round = 0; round < idaRounds; round++) {
+    const idaMatches = rounds[round].matches
+    const matches = idaMatches.map((m, i) => ({
+      id: `v${round}-${i}`,
+      home: m.away,
+      away: m.home,
+      homeGoals: null,
+      awayGoals: null,
+      played: false,
+    }))
+    rounds.push({ round: idaRounds + round + 1, matches })
+  }
+
   return rounds
 }
 
