@@ -481,3 +481,30 @@ tr.leader td { font-weight: 700; }
   display: flex;
   align-items: center;
 }
+
+/* Motivational quote */
+.quote-card {
+  margin-top: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(34,197,94,0.08));
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.quote-text {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.6;
+}
+.quote-author {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.3px;
+}
+.quote-loading {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

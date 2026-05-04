@@ -1,6 +1,24 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
+async function fetchMotivationalQuote() {
+  const res = await fetch('/api/quote', { cache: 'no-store' })
+  if (!res.ok) throw new Error('quote api error')
+  return res.json()
+}
+
 export default function Standings({ standings }) {
+  const [quote, setQuote] = useState(null)
+  const [quoteLoading, setQuoteLoading] = useState(true)
+
+  useEffect(() => {
+    fetchMotivationalQuote()
+      .then(setQuote)
+      .catch(() => setQuote({ text: 'El éxito es la suma de pequeños esfuerzos repetidos día tras día.', author: 'Robert Collier' }))
+      .finally(() => setQuoteLoading(false))
+  }, [])
+
   return (
     <div className="standings">
       <h2>🏆 Tabla de Posiciones</h2>
@@ -44,6 +62,17 @@ export default function Standings({ standings }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="quote-card">
+        {quoteLoading ? (
+          <p className="quote-loading">Cargando frase...</p>
+        ) : (
+          <>
+            <p className="quote-text">"{quote.text}"</p>
+            <p className="quote-author">— {quote.author}</p>
+          </>
+        )}
       </div>
     </div>
   )
