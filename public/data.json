@@ -23,9 +23,9 @@
           "id": "0-1",
           "home": "Gayco",
           "away": "Kevin",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 0,
+          "played": true
         },
         {
           "id": "0-2",
