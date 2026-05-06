@@ -81,9 +81,9 @@
           "id": "2-1",
           "home": "Kevin",
           "away": "Vulvega",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 0,
+          "played": true
         },
         {
           "id": "2-2",
