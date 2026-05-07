@@ -52,9 +52,9 @@
           "id": "1-1",
           "home": "Negro",
           "away": "Nacho",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 2,
+          "played": true
         },
         {
           "id": "1-2",
