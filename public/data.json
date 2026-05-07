@@ -73,9 +73,9 @@
           "id": "2-0",
           "home": "Max",
           "away": "Nacho",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 3,
+          "played": true
         },
         {
           "id": "2-1",
