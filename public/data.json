@@ -102,9 +102,9 @@
           "id": "3-0",
           "home": "Max",
           "away": "Vulvega",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 4,
+          "awayGoals": 0,
+          "played": true
         },
         {
           "id": "3-1",
