@@ -622,6 +622,8 @@ tr.leader td { font-weight: 700; }
 @media (max-width: 600px) {
   .app { padding: 10px; }
   .header h1 { font-size: 1.3rem; }
+  .tabs { gap: 4px; padding: 4px; }
+  .tab { padding: 8px 4px; font-size: 0.75rem; }
   .stats-grid { grid-template-columns: 1fr; }
   .player-perf-grid { grid-template-columns: 1fr; }
 
