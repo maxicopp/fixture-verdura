@@ -89,9 +89,9 @@
           "id": "2-2",
           "home": "Negro",
           "away": "Gayco",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 1,
+          "played": true
         }
       ]
     },
