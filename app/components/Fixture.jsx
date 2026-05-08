@@ -34,6 +34,7 @@ export default function Fixture({ fixture, onResult, onReset, onResetAll }) {
                 roundIdx={ri}
                 onResult={onResult}
                 onReset={onReset}
+                fixture={fixture}
               />
             )}
           </div>

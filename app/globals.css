@@ -333,32 +333,212 @@ tr.leader td { font-weight: 700; }
   margin-top: 4px;
 }
 
-.goals-chart { display: flex; flex-direction: column; gap: 8px; }
-.chart-row { display: flex; align-items: center; gap: 12px; }
-.chart-label {
-  min-width: 80px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-align: right;
-}
-.chart-bar-container {
-  flex: 1;
+/* Double chart */
+.double-chart { display: flex; flex-direction: column; gap: 10px; }
+.double-chart-row { display: flex; align-items: center; gap: 12px; }
+.double-chart-name {
+  min-width: 100px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
-.chart-bar {
-  height: 28px;
-  background: linear-gradient(90deg, var(--primary), var(--success));
-  border-radius: 6px;
+.double-chart-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.bar-wrap { display: flex; align-items: center; gap: 6px; }
+.bar {
+  height: 14px;
+  border-radius: 4px;
   min-width: 4px;
   transition: width 0.5s ease;
 }
-.chart-value {
-  font-weight: 700;
-  font-size: 0.85rem;
+.bar-gf { background: linear-gradient(90deg, var(--primary), #60a5fa); }
+.bar-gc { background: linear-gradient(90deg, var(--danger), #f87171); }
+.bar-val { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.bar-val.gc { color: #f87171; }
+.double-chart-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  margin-top: 4px;
+  padding-left: 112px;
 }
+.legend-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.legend-dot.gf { background: var(--primary); }
+.legend-dot.gc { background: var(--danger); }
+
+/* Player performance */
+.player-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.player-perf-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.player-perf-card:hover { border-color: var(--primary); }
+.perf-header { display: flex; align-items: center; gap: 8px; }
+.perf-name { font-weight: 700; flex: 1; }
+.win-rate { font-size: 0.78rem; font-weight: 700; }
+.perf-form { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.perf-form-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 2px; }
+.no-form { font-size: 0.8rem; color: var(--text-muted); }
+.form-badge {
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.form-G { background: rgba(34,197,94,0.2); color: var(--success); }
+.form-E { background: rgba(245,158,11,0.2); color: var(--warning); }
+.form-P { background: rgba(239,68,68,0.2); color: var(--danger); }
+.perf-avg { display: flex; gap: 12px; font-size: 0.82rem; color: var(--text-muted); }
+.home-away { display: flex; flex-direction: column; gap: 4px; }
+.ha-item { display: flex; justify-content: space-between; font-size: 0.8rem; }
+.ha-label { color: var(--text-muted); }
+.ha-val { font-weight: 600; }
+
+/* Odds */
+.odds-block {
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.8), rgba(30,41,59,0.6));
+  border: 1px solid rgba(251,191,36,0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.odds-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(251,191,36,0.06);
+  border-bottom: 1px solid rgba(251,191,36,0.1);
+}
+.odds-icon { font-size: 0.75rem; }
+.odds-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  flex: 1;
+}
+.odds-row {
+  display: flex;
+  gap: 1px;
+  padding: 8px;
+  gap: 6px;
+}
+.odd-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+  transition: all 0.15s;
+  cursor: default;
+}
+.odd-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(251,191,36,0.3);
+  transform: translateY(-1px);
+}
+.odd-fav {
+  background: linear-gradient(160deg, rgba(251,191,36,0.12), rgba(251,191,36,0.05));
+  border-color: rgba(251,191,36,0.35);
+}
+.odd-fav:hover {
+  background: linear-gradient(160deg, rgba(251,191,36,0.18), rgba(251,191,36,0.08));
+  border-color: rgba(251,191,36,0.5);
+}
+.odd-label {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+.odd-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.odd-fav .odd-val { color: #fcd34d; }
+.odd-fav-tag {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--gold);
+  background: rgba(251,191,36,0.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-transform: uppercase;
+}
+.h2h-wrapper { overflow-x: auto; }
+.h2h-table {
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  width: 100%;
+}
+.h2h-table th, .h2h-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(71,85,105,0.3);
+}
+.h2h-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  display: block;
+  margin: 0 auto;
+}
+.h2h-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-align: left;
+}
+.h2h-cell { font-weight: 800; font-size: 0.9rem; vertical-align: middle; }
+.h2h-G { color: var(--success); background: rgba(34,197,94,0.1); }
+.h2h-P { color: var(--danger); background: rgba(239,68,68,0.1); }
+.h2h-E { color: var(--text-muted); }
+.h2h-self { color: var(--text-muted); background: rgba(71,85,105,0.15); }
+.h2h-empty { color: var(--text-muted); }
+.h2h-G { color: var(--success); background: rgba(34,197,94,0.1); }
+.h2h-P { color: var(--danger); background: rgba(239,68,68,0.1); }
+.h2h-E { color: var(--warning); background: rgba(245,158,11,0.1); }
 
 @media (max-width: 600px) {
   .app { padding: 12px; }

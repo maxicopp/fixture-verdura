@@ -1,9 +1,24 @@
 'use client'
 
+function getPlayerStats(name, fixture) {
+  const results = []
+  fixture.forEach(r => r.matches.forEach(m => {
+    if (!m.played) return
+    if (m.home === name) results.push({ gf: m.homeGoals, gc: m.awayGoals, isHome: true })
+    if (m.away === name) results.push({ gf: m.awayGoals, gc: m.homeGoals, isHome: false })
+  }))
+  return results
+}
+
+function getResult(r) {
+  return r.gf > r.gc ? 'G' : r.gf < r.gc ? 'P' : 'E'
+}
+
 export default function Stats({ fixture, standings }) {
   const allMatches = fixture.flatMap(r => r.matches).filter(m => m.played)
   const totalGoals = allMatches.reduce((acc, m) => acc + m.homeGoals + m.awayGoals, 0)
   const totalMatches = allMatches.length
+  const draws = allMatches.filter(m => m.homeGoals === m.awayGoals).length
 
   const topScorer = standings.length > 0 ? [...standings].sort((a, b) => b.gf - a.gf)[0] : null
   const bestDefense = standings.length > 0 ? [...standings].sort((a, b) => a.gc - b.gc)[0] : null
@@ -11,40 +26,41 @@ export default function Stats({ fixture, standings }) {
   let biggestWin = null
   allMatches.forEach(m => {
     const diff = Math.abs(m.homeGoals - m.awayGoals)
-    if (!biggestWin || diff > biggestWin.diff) {
-      biggestWin = { ...m, diff }
-    }
+    if (!biggestWin || diff > biggestWin.diff) biggestWin = { ...m, diff }
   })
 
-  let mostGoals = null
+  // Head to head matrix — acumula todos los enfrentamientos jugados
+  const players = standings.map(s => s.name)
+  const h2h = {}
+  players.forEach(a => {
+    h2h[a] = {}
+    players.forEach(b => { h2h[a][b] = { g: 0, e: 0, p: 0 } })
+  })
   allMatches.forEach(m => {
-    const total = m.homeGoals + m.awayGoals
-    if (!mostGoals || total > mostGoals.total) {
-      mostGoals = { ...m, total }
-    }
+    const diff = m.homeGoals - m.awayGoals
+    if (diff > 0) { h2h[m.home][m.away].g++; h2h[m.away][m.home].p++ }
+    else if (diff < 0) { h2h[m.home][m.away].p++; h2h[m.away][m.home].g++ }
+    else { h2h[m.home][m.away].e++; h2h[m.away][m.home].e++ }
+  })
+  // balance = g - p
+
+  // Per-player stats
+  const playerData = players.map(name => {
+    const results = getPlayerStats(name, fixture)
+    const home = results.filter(r => r.isHome)
+    const away = results.filter(r => !r.isHome)
+    const recent = results.slice(-5).map(getResult)
+    const wins = results.filter(r => r.gf > r.gc).length
+    const winRate = results.length > 0 ? Math.round((wins / results.length) * 100) : 0
+    const totalGf = results.reduce((a, r) => a + r.gf, 0)
+    const totalGc = results.reduce((a, r) => a + r.gc, 0)
+    const homeWins = home.filter(r => r.gf > r.gc).length
+    const awayWins = away.filter(r => r.gf > r.gc).length
+    return { name, results, recent, winRate, totalGf, totalGc, home, away, homeWins, awayWins }
   })
 
-  const streaks = {}
-  standings.forEach(s => { streaks[s.name] = { current: 0, max: 0 } })
-  fixture.forEach(round => {
-    round.matches.forEach(m => {
-      if (!m.played) return
-      if (m.homeGoals >= m.awayGoals) {
-        streaks[m.home].current++
-        streaks[m.home].max = Math.max(streaks[m.home].max, streaks[m.home].current)
-      } else {
-        streaks[m.home].current = 0
-      }
-      if (m.awayGoals >= m.homeGoals) {
-        streaks[m.away].current++
-        streaks[m.away].max = Math.max(streaks[m.away].max, streaks[m.away].current)
-      } else {
-        streaks[m.away].current = 0
-      }
-    })
-  })
-  const bestStreak = Object.entries(streaks).sort((a, b) => b[1].max - a[1].max)[0]
-  const draws = allMatches.filter(m => m.homeGoals === m.awayGoals).length
+  const maxGf = Math.max(...standings.map(s => s.gf), 1)
+  const maxGc = Math.max(...standings.map(s => s.gc), 1)
 
   if (totalMatches === 0) {
     return (
@@ -58,6 +74,8 @@ export default function Stats({ fixture, standings }) {
   return (
     <div className="stats">
       <h2>📊 Estadísticas del Torneo</h2>
+
+      {/* KPIs */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">⚽</div>
@@ -69,70 +87,140 @@ export default function Stats({ fixture, standings }) {
           <div className="stat-icon">🎯</div>
           <div className="stat-value">{totalMatches}</div>
           <div className="stat-label">Partidos jugados</div>
-          <div className="stat-sub">{draws} empates ({totalMatches > 0 ? Math.round(draws/totalMatches*100) : 0}%)</div>
+          <div className="stat-sub">{draws} empates ({Math.round(draws / totalMatches * 100)}%)</div>
         </div>
-        {topScorer && topScorer.gf > 0 && (
+        {topScorer?.gf > 0 && (
           <div className="stat-card highlight">
             <div className="stat-icon">👑</div>
             <img src={`/players/${topScorer.name.toLowerCase()}.png`} alt={topScorer.name} className="stat-avatar" />
             <div className="stat-value">{topScorer.name}</div>
             <div className="stat-label">Goleador</div>
-            <div className="stat-sub">{topScorer.gf} goles</div>
+            <div className="stat-sub">{topScorer.gf} goles · {(topScorer.gf / Math.max(topScorer.pj, 1)).toFixed(1)} por partido</div>
           </div>
         )}
-        {bestDefense && bestDefense.pj > 0 && (
+        {bestDefense?.pj > 0 && (
           <div className="stat-card">
             <div className="stat-icon">🧤</div>
             <img src={`/players/${bestDefense.name.toLowerCase()}.png`} alt={bestDefense.name} className="stat-avatar" />
             <div className="stat-value">{bestDefense.name}</div>
             <div className="stat-label">Mejor defensa</div>
-            <div className="stat-sub">{bestDefense.gc} goles recibidos</div>
+            <div className="stat-sub">{bestDefense.gc} recibidos · {(bestDefense.gc / Math.max(bestDefense.pj, 1)).toFixed(1)} por partido</div>
           </div>
         )}
-        {biggestWin && biggestWin.diff > 0 && (
+        {biggestWin?.diff > 0 && (
           <div className="stat-card">
             <div className="stat-icon">💥</div>
-            <div className="stat-value">{biggestWin.home} {biggestWin.homeGoals}-{biggestWin.awayGoals} {biggestWin.away}</div>
+            <div className="stat-value">{biggestWin.homeGoals}-{biggestWin.awayGoals}</div>
             <div className="stat-label">Mayor goleada</div>
-            <div className="stat-sub">{biggestWin.diff} goles de diferencia</div>
-          </div>
-        )}
-        {mostGoals && (
-          <div className="stat-card">
-            <div className="stat-icon">🔥</div>
-            <div className="stat-value">{mostGoals.home} {mostGoals.homeGoals}-{mostGoals.awayGoals} {mostGoals.away}</div>
-            <div className="stat-label">Más goles en un partido</div>
-            <div className="stat-sub">{mostGoals.total} goles totales</div>
-          </div>
-        )}
-        {bestStreak && bestStreak[1].max > 0 && (
-          <div className="stat-card">
-            <div className="stat-icon">🏃</div>
-            <img src={`/players/${bestStreak[0].toLowerCase()}.png`} alt={bestStreak[0]} className="stat-avatar" />
-            <div className="stat-value">{bestStreak[0]}</div>
-            <div className="stat-label">Mejor racha invicta</div>
-            <div className="stat-sub">{bestStreak[1].max} partidos sin perder</div>
+            <div className="stat-sub">{biggestWin.home} vs {biggestWin.away}</div>
           </div>
         )}
       </div>
 
-      <h3>📈 Goles por jugador</h3>
-      <div className="goals-chart">
+      {/* Goles a favor y en contra */}
+      <h3>⚽ Goles a favor y en contra</h3>
+      <div className="double-chart">
         {[...standings].sort((a, b) => b.gf - a.gf).map(s => (
-          <div key={s.name} className="chart-row">
-            <span className="chart-label">
+          <div key={s.name} className="double-chart-row">
+            <div className="double-chart-name">
               <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className="avatar" />
               {s.name}
-            </span>
-            <div className="chart-bar-container">
-              <div
-                className="chart-bar"
-                style={{ width: `${standings[0]?.gf > 0 ? (s.gf / Math.max(...standings.map(x => x.gf))) * 100 : 0}%` }}
-              />
-              <span className="chart-value">{s.gf}</span>
+            </div>
+            <div className="double-chart-bars">
+              <div className="bar-wrap">
+                <div className="bar bar-gf" style={{ width: `${(s.gf / maxGf) * 100}%` }} />
+                <span className="bar-val">{s.gf}</span>
+              </div>
+              <div className="bar-wrap">
+                <div className="bar bar-gc" style={{ width: `${(s.gc / maxGc) * 100}%` }} />
+                <span className="bar-val gc">{s.gc}</span>
+              </div>
             </div>
           </div>
         ))}
+        <div className="double-chart-legend">
+          <span><span className="legend-dot gf" />Goles a favor</span>
+          <span><span className="legend-dot gc" />Goles en contra</span>
+        </div>
+      </div>
+
+      {/* Forma reciente + rendimiento local/visitante */}
+      <h3>📋 Rendimiento por jugador</h3>
+      <div className="player-perf-grid">
+        {playerData.map(p => (
+          <div key={p.name} className="player-perf-card">
+            <div className="perf-header">
+              <img src={`/players/${p.name.toLowerCase()}.png`} alt={p.name} className="avatar" />
+              <span className="perf-name">{p.name}</span>
+              <span className="win-rate" style={{ color: p.winRate >= 50 ? 'var(--success)' : 'var(--danger)' }}>
+                {p.winRate}% victorias
+              </span>
+            </div>
+            <div className="perf-form">
+              <span className="perf-form-label">Forma</span>
+              {p.recent.length === 0
+                ? <span className="no-form">—</span>
+                : p.recent.map((r, i) => (
+                  <span key={i} className={`form-badge form-${r}`}>{r === 'G' ? 'G' : r === 'P' ? 'P' : 'E'}</span>
+                ))
+              }
+            </div>
+            <div className="perf-avg">
+              <span>⚽ {p.totalGf} GF</span>
+              <span>🛡 {p.totalGc} GC</span>
+            </div>
+            <div className="home-away">
+              <div className="ha-item">
+                <span className="ha-label">🏠 Local</span>
+                <span className="ha-val">{p.homeWins}G / {p.home.filter(r => r.gf === r.gc).length}E / {p.home.filter(r => r.gf < r.gc).length}P</span>
+              </div>
+              <div className="ha-item">
+                <span className="ha-label">✈️ Visitante</span>
+                <span className="ha-val">{p.awayWins}G / {p.away.filter(r => r.gf === r.gc).length}E / {p.away.filter(r => r.gf < r.gc).length}P</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Head to head */}
+      <h3>⚔️ Historial directo</h3>
+      <div className="h2h-wrapper">
+        <table className="h2h-table">
+          <thead>
+            <tr>
+              <th></th>
+              {players.map(p => (
+                <th key={p}>
+                  <img src={`/players/${p.toLowerCase()}.png`} alt={p} className="h2h-avatar" title={p} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map(a => (
+              <tr key={a}>
+                <td className="h2h-row-label">
+                  <img src={`/players/${a.toLowerCase()}.png`} alt={a} className="h2h-avatar" />
+                  <span>{a}</span>
+                </td>
+                {players.map(b => {
+                  if (a === b) return <td key={b} className="h2h-cell h2h-self">—</td>
+                  const r = h2h[a][b]
+                  const played = r.g + r.e + r.p
+                  if (played === 0) return <td key={b} className="h2h-cell h2h-empty">·</td>
+                  const balance = r.g - r.p
+                  const cls = balance > 0 ? 'h2h-G' : balance < 0 ? 'h2h-P' : 'h2h-E'
+                  return (
+                    <td key={b} className={`h2h-cell ${cls}`}>
+                      {balance > 0 ? `+${balance}` : balance}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

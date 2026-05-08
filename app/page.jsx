@@ -67,6 +67,34 @@ export default function Home() {
   )
 }
 
+function calcOdds(homeName, awayName, fixture) {
+  function score(name) {
+    const results = []
+    fixture.forEach(r => r.matches.forEach(m => {
+      if (!m.played) return
+      if (m.home === name) results.push({ gf: m.homeGoals, gc: m.awayGoals })
+      if (m.away === name) results.push({ gf: m.awayGoals, gc: m.homeGoals })
+    }))
+    if (results.length === 0) return 1
+    const pts = results.reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+    const recent = results.slice(-3).reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+    const dg = results.reduce((a, r) => a + (r.gf - r.gc), 0)
+    return pts * 2 + recent * 3 + dg + 5
+  }
+  const sh = Math.max(score(homeName), 0.1)
+  const sa = Math.max(score(awayName), 0.1)
+  const total = sh + sa
+  const ph = (sh / total) * 0.9
+  const pa = (sa / total) * 0.9
+  const pe = 0.1 + (0.28 - Math.abs(ph - pa) * 0.5)
+  const norm = ph + pe + pa
+  return {
+    home: Math.max(1.05, +(1 / (ph / norm)).toFixed(2)),
+    draw: Math.max(1.05, +(1 / (pe / norm)).toFixed(2)),
+    away: Math.max(1.05, +(1 / (pa / norm)).toFixed(2)),
+  }
+}
+
 function FixtureReadOnly({ fixture }) {
   const [expandedRound, setExpandedRound] = useState(0)
 
@@ -95,6 +123,7 @@ function FixtureReadOnly({ fixture }) {
               <div className="match-day">
                 {round.matches.map(match => {
                   if (!match.played) {
+                    const odds = calcOdds(match.home, match.away, fixture)
                     return (
                       <div key={match.id} className="match-card pending">
                         <div className="match-teams">
@@ -107,6 +136,25 @@ function FixtureReadOnly({ fixture }) {
                             <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
                             {match.away}
                           </span>
+                        </div>
+                        <div className="odds-block">
+                          <div className="odds-header">
+                            <span className="odds-icon">📊</span>
+                            <span className="odds-title">Cuotas estimadas</span>
+                          </div>
+                          <div className="odds-row">
+                            {[{ label: match.home, val: odds.home }, { label: 'Empate', val: odds.draw }, { label: match.away, val: odds.away }].map(({ label, val }) => {
+                              const minVal = Math.min(odds.home, odds.draw, odds.away)
+                              const isFav = val === minVal
+                              return (
+                                <div key={label} className={`odd-item ${isFav ? 'odd-fav' : ''}`}>
+                                  <span className="odd-label">{label}</span>
+                                  <span className="odd-val">{val}</span>
+                                  {isFav && <span className="odd-fav-tag">FAV</span>}
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
                       </div>
                     )
