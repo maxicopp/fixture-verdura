@@ -30,10 +30,10 @@ export default function Standings({ standings }) {
               <th>Jugador</th>
               <th>PJ</th>
               <th>PG</th>
-              <th>PE</th>
-              <th>PP</th>
-              <th>GF</th>
-              <th>GC</th>
+              <th className="col-hide-mobile">PE</th>
+              <th className="col-hide-mobile">PP</th>
+              <th className="col-hide-mobile">GF</th>
+              <th className="col-hide-mobile">GC</th>
               <th>DG</th>
               <th>PTS</th>
             </tr>
@@ -50,10 +50,10 @@ export default function Standings({ standings }) {
                 </td>
                 <td>{s.pj}</td>
                 <td>{s.pg}</td>
-                <td>{s.pe}</td>
-                <td>{s.pp}</td>
-                <td>{s.gf}</td>
-                <td>{s.gc}</td>
+                <td className="col-hide-mobile">{s.pe}</td>
+                <td className="col-hide-mobile">{s.pp}</td>
+                <td className="col-hide-mobile">{s.gf}</td>
+                <td className="col-hide-mobile">{s.gc}</td>
                 <td className={s.gf - s.gc > 0 ? 'positive' : s.gf - s.gc < 0 ? 'negative' : ''}>
                   {s.gf - s.gc > 0 ? '+' : ''}{s.gf - s.gc}
                 </td>

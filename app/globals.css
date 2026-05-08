@@ -541,12 +541,37 @@ tr.leader td { font-weight: 700; }
 .h2h-E { color: var(--warning); background: rgba(245,158,11,0.1); }
 
 @media (max-width: 600px) {
-  .app { padding: 12px; }
-  .header h1 { font-size: 1.5rem; }
+  .app { padding: 10px; }
+  .header h1 { font-size: 1.3rem; }
   .stats-grid { grid-template-columns: 1fr; }
-  .team { min-width: 60px; font-size: 0.85rem; }
-  .score { font-size: 1.1rem; }
-  th, td { padding: 8px 6px; font-size: 0.8rem; }
+  .player-perf-grid { grid-template-columns: 1fr; }
+
+  /* Fixture */
+  .team { min-width: 60px; font-size: 0.82rem; }
+  .score { font-size: 1rem; min-width: 44px; }
+  .score-input input { width: 40px; font-size: 1rem; }
+
+  /* Tabla de posiciones — ocultar columnas secundarias */
+  th, td { padding: 8px 5px; font-size: 0.78rem; }
+  .col-hide-mobile { display: none; }
+  .player-name { font-size: 0.82rem; }
+  .pts { font-size: 0.95rem; }
+  .avatar { width: 22px; height: 22px; margin-right: 5px; }
+
+  /* H2H — scroll horizontal con celdas compactas */
+  .h2h-wrapper { -webkit-overflow-scrolling: touch; }
+  .h2h-table th, .h2h-table td { padding: 6px 5px; font-size: 0.75rem; }
+  .h2h-avatar { width: 22px; height: 22px; }
+  .h2h-row-label { font-size: 0.75rem; gap: 5px; }
+  .h2h-row-label span { display: none; }
+
+  /* Double chart */
+  .double-chart-name { min-width: 80px; font-size: 0.82rem; }
+  .double-chart-legend { padding-left: 86px; }
+
+  /* Odds */
+  .odd-val { font-size: 0.95rem; }
+  .odd-label { font-size: 0.55rem; }
 }
 
 .loading {
