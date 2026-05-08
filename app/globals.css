@@ -599,6 +599,10 @@ tr.leader td { font-weight: 700; }
   border: 2px solid var(--border);
   display: block;
   margin: 0 auto;
+  flex-shrink: 0;
+}
+.h2h-row-label .h2h-avatar {
+  margin: 0;
 }
 .h2h-row-label {
   display: flex;
@@ -608,6 +612,8 @@ tr.leader td { font-weight: 700; }
   font-size: 0.85rem;
   white-space: nowrap;
   text-align: left;
+  vertical-align: middle;
+  padding-left: 10px;
 }
 .h2h-cell { font-weight: 800; font-size: 0.9rem; vertical-align: middle; }
 .h2h-G { color: var(--success); background: rgba(34,197,94,0.1); }
