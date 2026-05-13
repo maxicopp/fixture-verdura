@@ -819,3 +819,88 @@ tr.leader td { font-weight: 700; }
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+/* ── Jugadores desactivados ─────────────────────────────────────────────── */
+
+/* Nombre del jugador en gris */
+.player-disabled {
+  color: var(--text-muted) !important;
+  opacity: 0.55;
+}
+
+/* Avatar en escala de grises */
+.avatar-disabled {
+  filter: grayscale(100%) opacity(0.45);
+}
+
+/* Fila de tabla en gris */
+.row-disabled td {
+  color: var(--text-muted) !important;
+  opacity: 0.55;
+}
+.row-disabled .pts {
+  color: var(--text-muted) !important;
+}
+
+/* Tarjeta de partido con jugador desactivado */
+.match-card.match-disabled {
+  border-left-color: var(--border) !important;
+  opacity: 0.6;
+  background: rgba(71, 85, 105, 0.08);
+}
+.match-card.match-disabled .score {
+  color: var(--text-muted);
+}
+
+/* Badge "suspendido" en partidos */
+.disabled-badge {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 8px;
+  padding: 4px 0;
+  opacity: 0.7;
+}
+
+/* Tag "inactivo" junto al nombre */
+.disabled-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: rgba(71, 85, 105, 0.35);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  opacity: 0.8;
+}
+
+/* Tarjeta de stat con jugador desactivado */
+.stat-card-disabled {
+  opacity: 0.5;
+  filter: grayscale(80%);
+}
+
+/* Tarjeta de rendimiento desactivada */
+.perf-card-disabled {
+  opacity: 0.5;
+  filter: grayscale(80%);
+  border-color: var(--border) !important;
+}
+.perf-card-disabled:hover {
+  transform: none !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--glass-shadow) !important;
+}
+
+/* Columna/celda h2h de jugador desactivado */
+.h2h-col-disabled {
+  opacity: 0.4;
+  filter: grayscale(80%);
+  background: rgba(71, 85, 105, 0.08) !important;
+  color: var(--text-muted) !important;
+}

@@ -14,7 +14,8 @@ function getResult(r) {
   return r.gf > r.gc ? 'G' : r.gf < r.gc ? 'P' : 'E'
 }
 
-export default function Stats({ fixture, standings }) {
+export default function Stats({ fixture, standings, disabledPlayers = [] }) {
+  const isDisabled = (name) => disabledPlayers.includes(name)
   const allMatches = fixture.flatMap(r => r.matches).filter(m => m.played)
   const totalGoals = allMatches.reduce((acc, m) => acc + m.homeGoals + m.awayGoals, 0)
   const totalMatches = allMatches.length
@@ -90,29 +91,33 @@ export default function Stats({ fixture, standings }) {
           <div className="stat-sub">{draws} empates ({Math.round(draws / totalMatches * 100)}%)</div>
         </div>
         {topScorer?.gf > 0 && (
-          <div className="stat-card highlight">
+          <div className={`stat-card highlight ${isDisabled(topScorer.name) ? 'stat-card-disabled' : ''}`}>
             <div className="stat-icon">👑</div>
-            <img src={`/players/${topScorer.name.toLowerCase()}.png`} alt={topScorer.name} className="stat-avatar" />
+            <img src={`/players/${topScorer.name.toLowerCase()}.png`} alt={topScorer.name} className={`stat-avatar ${isDisabled(topScorer.name) ? 'avatar-disabled' : ''}`} />
             <div className="stat-value">{topScorer.name}</div>
             <div className="stat-label">Goleador</div>
             <div className="stat-sub">{topScorer.gf} goles · {(topScorer.gf / Math.max(topScorer.pj, 1)).toFixed(1)} por partido</div>
           </div>
         )}
         {bestDefense?.pj > 0 && (
-          <div className="stat-card">
+          <div className={`stat-card ${isDisabled(bestDefense.name) ? 'stat-card-disabled' : ''}`}>
             <div className="stat-icon">🧤</div>
-            <img src={`/players/${bestDefense.name.toLowerCase()}.png`} alt={bestDefense.name} className="stat-avatar" />
+            <img src={`/players/${bestDefense.name.toLowerCase()}.png`} alt={bestDefense.name} className={`stat-avatar ${isDisabled(bestDefense.name) ? 'avatar-disabled' : ''}`} />
             <div className="stat-value">{bestDefense.name}</div>
             <div className="stat-label">Mejor defensa</div>
             <div className="stat-sub">{bestDefense.gc} recibidos · {(bestDefense.gc / Math.max(bestDefense.pj, 1)).toFixed(1)} por partido</div>
           </div>
         )}
         {biggestWin?.diff > 0 && (
-          <div className="stat-card">
+          <div className={`stat-card ${(isDisabled(biggestWin.home) || isDisabled(biggestWin.away)) ? 'stat-card-disabled' : ''}`}>
             <div className="stat-icon">💥</div>
             <div className="stat-value">{biggestWin.homeGoals}-{biggestWin.awayGoals}</div>
             <div className="stat-label">Mayor goleada</div>
-            <div className="stat-sub">{biggestWin.home} vs {biggestWin.away}</div>
+            <div className="stat-sub">
+              <span className={isDisabled(biggestWin.home) ? 'player-disabled' : ''}>{biggestWin.home}</span>
+              {' vs '}
+              <span className={isDisabled(biggestWin.away) ? 'player-disabled' : ''}>{biggestWin.away}</span>
+            </div>
           </div>
         )}
       </div>
@@ -121,10 +126,10 @@ export default function Stats({ fixture, standings }) {
       <h3>⚽ Goles a favor y en contra</h3>
       <div className="double-chart">
         {[...standings].sort((a, b) => b.gf - a.gf).map(s => (
-          <div key={s.name} className="double-chart-row">
+          <div key={s.name} className={`double-chart-row ${isDisabled(s.name) ? 'row-disabled' : ''}`}>
             <div className="double-chart-name">
-              <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className="avatar" />
-              {s.name}
+              <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className={`avatar ${isDisabled(s.name) ? 'avatar-disabled' : ''}`} />
+              <span className={isDisabled(s.name) ? 'player-disabled' : ''}>{s.name}</span>
             </div>
             <div className="double-chart-bars">
               <div className="bar-wrap">
@@ -148,13 +153,16 @@ export default function Stats({ fixture, standings }) {
       <h3>📋 Rendimiento por jugador</h3>
       <div className="player-perf-grid">
         {playerData.map(p => (
-          <div key={p.name} className="player-perf-card">
+          <div key={p.name} className={`player-perf-card ${isDisabled(p.name) ? 'perf-card-disabled' : ''}`}>
             <div className="perf-header">
-              <img src={`/players/${p.name.toLowerCase()}.png`} alt={p.name} className="avatar" />
-              <span className="perf-name">{p.name}</span>
-              <span className="win-rate" style={{ color: p.winRate >= 50 ? 'var(--success)' : 'var(--danger)' }}>
-                {p.winRate}% victorias
-              </span>
+              <img src={`/players/${p.name.toLowerCase()}.png`} alt={p.name} className={`avatar ${isDisabled(p.name) ? 'avatar-disabled' : ''}`} />
+              <span className={`perf-name ${isDisabled(p.name) ? 'player-disabled' : ''}`}>{p.name}</span>
+              {isDisabled(p.name)
+                ? <span className="disabled-tag">inactivo</span>
+                : <span className="win-rate" style={{ color: p.winRate >= 50 ? 'var(--success)' : 'var(--danger)' }}>
+                    {p.winRate}% victorias
+                  </span>
+              }
             </div>
             <div className="perf-form">
               <span className="perf-form-label">Forma</span>
@@ -191,28 +199,28 @@ export default function Stats({ fixture, standings }) {
             <tr>
               <th></th>
               {players.map(p => (
-                <th key={p}>
-                  <img src={`/players/${p.toLowerCase()}.png`} alt={p} className="h2h-avatar" title={p} />
+                <th key={p} className={isDisabled(p) ? 'h2h-col-disabled' : ''}>
+                  <img src={`/players/${p.toLowerCase()}.png`} alt={p} className={`h2h-avatar ${isDisabled(p) ? 'avatar-disabled' : ''}`} title={p} />
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {players.map(a => (
-              <tr key={a}>
+              <tr key={a} className={isDisabled(a) ? 'row-disabled' : ''}>
                 <td className="h2h-row-label">
-                  <img src={`/players/${a.toLowerCase()}.png`} alt={a} className="h2h-avatar" />
-                  <span>{a}</span>
+                  <img src={`/players/${a.toLowerCase()}.png`} alt={a} className={`h2h-avatar ${isDisabled(a) ? 'avatar-disabled' : ''}`} />
+                  <span className={isDisabled(a) ? 'player-disabled' : ''}>{a}</span>
                 </td>
                 {players.map(b => {
                   if (a === b) return <td key={b} className="h2h-cell h2h-self">—</td>
                   const r = h2h[a][b]
                   const played = r.g + r.e + r.p
-                  if (played === 0) return <td key={b} className="h2h-cell h2h-empty">·</td>
+                  if (played === 0) return <td key={b} className={`h2h-cell h2h-empty ${isDisabled(b) ? 'h2h-col-disabled' : ''}`}>·</td>
                   const balance = r.g - r.p
-                  const cls = balance > 0 ? 'h2h-G' : balance < 0 ? 'h2h-P' : 'h2h-E'
+                  const cls = (isDisabled(a) || isDisabled(b)) ? '' : balance > 0 ? 'h2h-G' : balance < 0 ? 'h2h-P' : 'h2h-E'
                   return (
-                    <td key={b} className={`h2h-cell ${cls}`}>
+                    <td key={b} className={`h2h-cell ${cls} ${(isDisabled(a) || isDisabled(b)) ? 'h2h-col-disabled' : ''}`}>
                       {balance > 0 ? `+${balance}` : balance}
                     </td>
                   )

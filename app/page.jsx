@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Standings from './components/Standings'
 import Stats from './components/Stats'
 import { generateFixture, calcStandings } from './lib/fixture'
+import { DISABLED_PLAYERS } from './lib/disabled-players'
 
 export default function Home() {
   const [players, setPlayers] = useState([])
@@ -59,9 +60,9 @@ export default function Home() {
       </nav>
 
       <main className="content">
-        {activeTab === 'standings' && <Standings standings={standings} />}
-        {activeTab === 'fixture' && <FixtureReadOnly fixture={fixture} />}
-        {activeTab === 'stats' && <Stats fixture={fixture} standings={standings} />}
+        {activeTab === 'standings' && <Standings standings={standings} disabledPlayers={DISABLED_PLAYERS} />}
+        {activeTab === 'fixture' && <FixtureReadOnly fixture={fixture} disabledPlayers={DISABLED_PLAYERS} />}
+        {activeTab === 'stats' && <Stats fixture={fixture} standings={standings} disabledPlayers={DISABLED_PLAYERS} />}
       </main>
     </div>
   )
@@ -95,8 +96,11 @@ function calcOdds(homeName, awayName, fixture) {
   }
 }
 
-function FixtureReadOnly({ fixture }) {
+function FixtureReadOnly({ fixture, disabledPlayers = [] }) {
   const [expandedRound, setExpandedRound] = useState(0)
+
+  const isDisabled = (name) => disabledPlayers.includes(name)
+  const matchHasDisabled = (match) => isDisabled(match.home) || isDisabled(match.away)
 
   return (
     <div className="fixture">
@@ -122,40 +126,46 @@ function FixtureReadOnly({ fixture }) {
             {isExpanded && (
               <div className="match-day">
                 {round.matches.map(match => {
+                  const disabled = matchHasDisabled(match)
                   if (!match.played) {
                     const odds = calcOdds(match.home, match.away, fixture)
                     return (
-                      <div key={match.id} className="match-card pending">
+                      <div key={match.id} className={`match-card pending ${disabled ? 'match-disabled' : ''}`}>
                         <div className="match-teams">
-                          <span className="team team-home">
+                          <span className={`team team-home ${isDisabled(match.home) ? 'player-disabled' : ''}`}>
                             {match.home}
-                            <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+                            <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className={`avatar ${isDisabled(match.home) ? 'avatar-disabled' : ''}`} />
                           </span>
                           <span className="score" style={{ color: 'var(--text-muted)' }}>vs</span>
-                          <span className="team team-away">
-                            <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+                          <span className={`team team-away ${isDisabled(match.away) ? 'player-disabled' : ''}`}>
+                            <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className={`avatar ${isDisabled(match.away) ? 'avatar-disabled' : ''}`} />
                             {match.away}
                           </span>
                         </div>
-                        <div className="odds-block">
-                          <div className="odds-header">
-                            <span className="odds-icon">📊</span>
-                            <span className="odds-title">Cuotas estimadas</span>
+                        {!disabled && (
+                          <div className="odds-block">
+                            <div className="odds-header">
+                              <span className="odds-icon">📊</span>
+                              <span className="odds-title">Cuotas estimadas</span>
+                            </div>
+                            <div className="odds-row">
+                              {[{ label: match.home, val: odds.home }, { label: 'Empate', val: odds.draw }, { label: match.away, val: odds.away }].map(({ label, val }) => {
+                                const minVal = Math.min(odds.home, odds.draw, odds.away)
+                                const isFav = val === minVal
+                                return (
+                                  <div key={label} className={`odd-item ${isFav ? 'odd-fav' : ''}`}>
+                                    <span className="odd-label">{label}</span>
+                                    <span className="odd-val">{val}</span>
+                                    {isFav && <span className="odd-fav-tag">FAV</span>}
+                                  </div>
+                                )
+                              })}
+                            </div>
                           </div>
-                          <div className="odds-row">
-                            {[{ label: match.home, val: odds.home }, { label: 'Empate', val: odds.draw }, { label: match.away, val: odds.away }].map(({ label, val }) => {
-                              const minVal = Math.min(odds.home, odds.draw, odds.away)
-                              const isFav = val === minVal
-                              return (
-                                <div key={label} className={`odd-item ${isFav ? 'odd-fav' : ''}`}>
-                                  <span className="odd-label">{label}</span>
-                                  <span className="odd-val">{val}</span>
-                                  {isFav && <span className="odd-fav-tag">FAV</span>}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
+                        )}
+                        {disabled && (
+                          <div className="disabled-badge">⏸ Partido suspendido</div>
+                        )}
                       </div>
                     )
                   }
@@ -163,15 +173,15 @@ function FixtureReadOnly({ fixture }) {
                   const awayWin = match.awayGoals > match.homeGoals
                   const draw = match.homeGoals === match.awayGoals
                   return (
-                    <div key={match.id} className={`match-card played ${draw ? 'draw' : ''}`}>
+                    <div key={match.id} className={`match-card played ${draw ? 'draw' : ''} ${disabled ? 'match-disabled' : ''}`}>
                       <div className="match-teams">
-                        <span className={`team team-home ${homeWin ? 'winner' : ''}`}>
+                        <span className={`team team-home ${homeWin && !disabled ? 'winner' : ''} ${isDisabled(match.home) ? 'player-disabled' : ''}`}>
                           {match.home}
-                          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+                          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className={`avatar ${isDisabled(match.home) ? 'avatar-disabled' : ''}`} />
                         </span>
                         <span className="score">{match.homeGoals} - {match.awayGoals}</span>
-                        <span className={`team team-away ${awayWin ? 'winner' : ''}`}>
-                          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+                        <span className={`team team-away ${awayWin && !disabled ? 'winner' : ''} ${isDisabled(match.away) ? 'player-disabled' : ''}`}>
+                          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className={`avatar ${isDisabled(match.away) ? 'avatar-disabled' : ''}`} />
                           {match.away}
                         </span>
                       </div>
