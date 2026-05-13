@@ -333,6 +333,9 @@ td {
   padding: 12px 10px;
   text-align: center;
   font-size: 0.9rem;
+  border-bottom: none;
+}
+tr {
   border-bottom: 1px solid rgba(71, 85, 105, 0.3);
 }
 tr.leader {
@@ -340,7 +343,15 @@ tr.leader {
 }
 tr.leader td { font-weight: 700; }
 .pos { font-weight: 700; }
-.player-name { text-align: left; font-weight: 600; }
+.player-name {
+  text-align: left;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .pts {
   font-weight: 800;
   font-size: 1.1rem;
@@ -640,9 +651,10 @@ tr.leader td { font-weight: 700; }
 
   /* Tabla de posiciones — compacta en mobile */
   th, td { padding: 6px 3px; font-size: 0.68rem; }
-  .player-name { font-size: 0.68rem; }
+  .player-name { font-size: 0.68rem; overflow: hidden; }
   .pts { font-size: 0.82rem; }
   .avatar { width: 18px; height: 18px; margin-right: 3px; }
+
 
   /* H2H — scroll horizontal con celdas compactas */
   .h2h-wrapper { -webkit-overflow-scrolling: touch; }
@@ -785,11 +797,6 @@ tr.leader td { font-weight: 700; }
   gap: 6px;
 }
 
-.player-name {
-  display: flex;
-  align-items: center;
-}
-
 /* Motivational quote */
 .quote-card {
   margin-top: 20px;
@@ -834,9 +841,11 @@ tr.leader td { font-weight: 700; }
 }
 
 /* Fila de tabla en gris */
+.row-disabled {
+  opacity: 0.55;
+}
 .row-disabled td {
   color: var(--text-muted) !important;
-  opacity: 0.55;
 }
 .row-disabled .pts {
   color: var(--text-muted) !important;
