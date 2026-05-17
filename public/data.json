@@ -110,9 +110,9 @@
           "id": "3-1",
           "home": "Nacho",
           "away": "Gayco",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 2,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "3-2",
