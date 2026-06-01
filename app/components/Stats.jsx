@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -113,13 +114,16 @@ function SectionTitle({ children }) {
 // ─── main component ──────────────────────────────────────────────────────────
 
 export default function Stats({ fixture, standings, disabledPlayers = [] }) {
+  const allPlayers = standings.map(s => s.name)
+  const [selectedPlayers, setSelectedPlayers] = useState(() => new Set(allPlayers))
+
   const isDisabled = (name) => disabledPlayers.includes(name)
   const allMatches = fixture.flatMap(r => r.matches).filter(m => m.played)
   const totalGoals = allMatches.reduce((acc, m) => acc + m.homeGoals + m.awayGoals, 0)
   const totalMatches = allMatches.length
   const draws = allMatches.filter(m => m.homeGoals === m.awayGoals).length
 
-  const topScorer = standings.length > 0 ? [...standings].sort((a, b) => b.gf - a.gf)[0] : null
+  const topScorer   = standings.length > 0 ? [...standings].sort((a, b) => b.gf - a.gf)[0] : null
   const bestDefense = standings.length > 0 ? [...standings].sort((a, b) => a.gc - b.gc)[0] : null
 
   let biggestWin = null
@@ -128,7 +132,28 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     if (!biggestWin || diff > biggestWin.diff) biggestWin = { ...m, diff }
   })
 
-  const players = standings.map(s => s.name)
+  // jugadores visibles según filtro
+  const players = allPlayers.filter(n => selectedPlayers.has(n))
+  const allActive = selectedPlayers.size === allPlayers.length
+
+  const togglePlayer = (name) => {
+    setSelectedPlayers(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) {
+        // no dejar vacío
+        if (next.size === 1) return next
+        next.delete(name)
+      } else {
+        next.add(name)
+      }
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    // "Todos" siempre activa todos — es un reset/select-all
+    setSelectedPlayers(new Set(allPlayers))
+  }
 
   // Per-player stats
   const playerData = players.map(name => {
@@ -152,6 +177,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
 
   // 1. Goles a favor vs en contra (BarChart agrupado)
   const goalsBarData = [...standings]
+    .filter(s => players.includes(s.name))
     .sort((a, b) => b.gf - a.gf)
     .map(s => ({ name: s.name, 'A favor': s.gf, 'En contra': s.gc, Diferencia: s.gf - s.gc }))
 
@@ -206,10 +232,11 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     return entry
   })
 
-  // Head to head matrix
+  // Head to head matrix — siempre sobre allPlayers, el filtro solo afecta lo que se muestra
   const h2h = {}
-  players.forEach(a => { h2h[a] = {}; players.forEach(b => { h2h[a][b] = { g: 0, e: 0, p: 0 } }) })
+  allPlayers.forEach(a => { h2h[a] = {}; allPlayers.forEach(b => { h2h[a][b] = { g: 0, e: 0, p: 0 } }) })
   allMatches.forEach(m => {
+    if (!h2h[m.home] || !h2h[m.away]) return
     const diff = m.homeGoals - m.awayGoals
     if (diff > 0) { h2h[m.home][m.away].g++; h2h[m.away][m.home].p++ }
     else if (diff < 0) { h2h[m.home][m.away].p++; h2h[m.away][m.home].g++ }
@@ -228,6 +255,34 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
   return (
     <div className="stats">
       <h2>📊 Estadísticas del Torneo</h2>
+
+      {/* ── Filtro de jugadores ── */}
+      <div className="player-filter">
+        <button
+          className={`filter-chip ${allActive ? 'filter-chip-active' : ''}`}
+          onClick={toggleAll}
+        >
+          Todos
+        </button>
+        {allPlayers.map(name => {
+          const active = selectedPlayers.has(name)
+          return (
+            <button
+              key={name}
+              className={`filter-chip ${active ? 'filter-chip-active' : ''}`}
+              style={active ? { '--chip-color': getColor(name) } : {}}
+              onClick={() => togglePlayer(name)}
+            >
+              <img
+                src={`/players/${name.toLowerCase()}.png`}
+                alt={name}
+                className={`filter-chip-avatar ${isDisabled(name) ? 'avatar-disabled' : ''}`}
+              />
+              {name}
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── KPIs ── */}
       <div className="stats-grid">
