@@ -1,5 +1,13 @@
 'use client'
 
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line,
+} from 'recharts'
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
 function getPlayerStats(name, fixture) {
   const results = []
   fixture.forEach(r => r.matches.forEach(m => {
@@ -13,6 +21,96 @@ function getPlayerStats(name, fixture) {
 function getResult(r) {
   return r.gf > r.gc ? 'G' : r.gf < r.gc ? 'P' : 'E'
 }
+
+const PLAYER_COLORS = {
+  Max:     '#818cf8', // indigo-400
+  Gayco:   '#fbbf24', // amber-400
+  Vulvega: '#34d399', // emerald-400
+  Nacho:   '#f87171', // red-400
+  Kevin:   '#60a5fa', // blue-400
+  Negro:   '#a78bfa', // violet-400
+}
+const DEFAULT_COLOR = '#94a3b8'
+const getColor = (name) => PLAYER_COLORS[name] ?? DEFAULT_COLOR
+
+// ─── form health (PES-style) ─────────────────────────────────────────────────
+
+/**
+ * Calcula la "salud" del jugador en base a sus últimos 3 resultados.
+ * Devuelve: { arrow, label, color, score }
+ *   ⇈  Excelente  (verde vivo)
+ *   ↑  Bien        (verde)
+ *   →  Regular     (amarillo)
+ *   ↓  Mal         (naranja)
+ *   ⇊  Pésimo      (rojo)
+ */
+function calcHealth(results) {
+  if (results.length === 0) return { arrow: '—', label: 'Sin datos', color: '#475569', score: -1 }
+  const last3 = results.slice(-3)
+  // Pesos: el partido más reciente vale más
+  const weights = [1, 1.5, 2]
+  let score = 0
+  let maxScore = 0
+  last3.forEach((r, i) => {
+    const w = weights[i + (3 - last3.length)]
+    const pts = r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0
+    score    += pts * w
+    maxScore += 3 * w
+  })
+  const pct = score / maxScore // 0-1
+
+  if (pct >= 0.85) return { arrow: '⇈', label: 'Excelente',  color: '#4ade80', score: pct }
+  if (pct >= 0.6)  return { arrow: '↑', label: 'Bien',       color: '#86efac', score: pct }
+  if (pct >= 0.35) return { arrow: '→', label: 'Regular',    color: '#fbbf24', score: pct }
+  if (pct >= 0.15) return { arrow: '↓', label: 'Mal',        color: '#fb923c', score: pct }
+  return               { arrow: '⇊', label: 'Pésimo',     color: '#f87171', score: pct }
+}
+
+function HealthBadge({ health, size = 'md' }) {
+  const isSmall = size === 'sm'
+  return (
+    <div className={`health-badge ${isSmall ? 'health-badge-sm' : ''}`} title={health.label}>
+      <span className="health-arrow" style={{ color: health.color }}>{health.arrow}</span>
+      {!isSmall && <span className="health-label" style={{ color: health.color }}>{health.label}</span>}
+    </div>
+  )
+}
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: '#1e293b',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 10,
+      padding: '10px 14px',
+      fontSize: 13,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      minWidth: 140,
+    }}>
+      <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
+      {payload.map(p => (
+        <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '3px 0' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+          <span style={{ color: '#cbd5e1', flex: 1 }}>{p.name}</span>
+          <strong style={{ color: '#f1f5f9' }}>{p.value}</strong>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── section heading ─────────────────────────────────────────────────────────
+
+function SectionTitle({ children }) {
+  return (
+    <div className="section-title">
+      <span className="section-title-text">{children}</span>
+    </div>
+  )
+}
+
+// ─── main component ──────────────────────────────────────────────────────────
 
 export default function Stats({ fixture, standings, disabledPlayers = [] }) {
   const isDisabled = (name) => disabledPlayers.includes(name)
@@ -30,20 +128,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     if (!biggestWin || diff > biggestWin.diff) biggestWin = { ...m, diff }
   })
 
-  // Head to head matrix — acumula todos los enfrentamientos jugados
   const players = standings.map(s => s.name)
-  const h2h = {}
-  players.forEach(a => {
-    h2h[a] = {}
-    players.forEach(b => { h2h[a][b] = { g: 0, e: 0, p: 0 } })
-  })
-  allMatches.forEach(m => {
-    const diff = m.homeGoals - m.awayGoals
-    if (diff > 0) { h2h[m.home][m.away].g++; h2h[m.away][m.home].p++ }
-    else if (diff < 0) { h2h[m.home][m.away].p++; h2h[m.away][m.home].g++ }
-    else { h2h[m.home][m.away].e++; h2h[m.away][m.home].e++ }
-  })
-  // balance = g - p
 
   // Per-player stats
   const playerData = players.map(name => {
@@ -52,16 +137,84 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     const away = results.filter(r => !r.isHome)
     const recent = results.slice(-5).map(getResult)
     const wins = results.filter(r => r.gf > r.gc).length
+    const losses = results.filter(r => r.gf < r.gc).length
+    const drawsP = results.filter(r => r.gf === r.gc).length
     const winRate = results.length > 0 ? Math.round((wins / results.length) * 100) : 0
     const totalGf = results.reduce((a, r) => a + r.gf, 0)
     const totalGc = results.reduce((a, r) => a + r.gc, 0)
     const homeWins = home.filter(r => r.gf > r.gc).length
     const awayWins = away.filter(r => r.gf > r.gc).length
-    return { name, results, recent, winRate, totalGf, totalGc, home, away, homeWins, awayWins }
+    const health   = calcHealth(results)
+    return { name, results, recent, winRate, wins, losses, draws: drawsP, totalGf, totalGc, home, away, homeWins, awayWins, health }
   })
 
-  const maxGf = Math.max(...standings.map(s => s.gf), 1)
-  const maxGc = Math.max(...standings.map(s => s.gc), 1)
+  // ── Chart data ──────────────────────────────────────────────────────────────
+
+  // 1. Goles a favor vs en contra (BarChart agrupado)
+  const goalsBarData = [...standings]
+    .sort((a, b) => b.gf - a.gf)
+    .map(s => ({ name: s.name, 'A favor': s.gf, 'En contra': s.gc, Diferencia: s.gf - s.gc }))
+
+  // 2. Puntos acumulados por jornada (LineChart)
+  const roundsPlayed = fixture.filter(r => r.matches.some(m => m.played))
+  const cumulativeData = roundsPlayed.map((round, ri) => {
+    const entry = { jornada: `J${round.round}` }
+    players.forEach(name => {
+      let pts = 0
+      for (let i = 0; i <= ri; i++) {
+        fixture[i].matches.forEach(m => {
+          if (!m.played) return
+          if (m.home === name) pts += m.homeGoals > m.awayGoals ? 3 : m.homeGoals === m.awayGoals ? 1 : 0
+          if (m.away === name) pts += m.awayGoals > m.homeGoals ? 3 : m.homeGoals === m.awayGoals ? 1 : 0
+        })
+      }
+      entry[name] = pts
+    })
+    return entry
+  })
+
+  // 3. Radar de rendimiento (normalizado 0-100)
+  const maxGf = Math.max(...playerData.map(p => p.totalGf), 1)
+  const radarData = [
+    { stat: 'Goles', ...Object.fromEntries(playerData.map(p => [p.name, Math.round((p.totalGf / maxGf) * 100)])) },
+    { stat: '% Victorias', ...Object.fromEntries(playerData.map(p => [p.name, p.winRate])) },
+    { stat: 'Local', ...Object.fromEntries(playerData.map(p => [p.name, p.home.length > 0 ? Math.round((p.homeWins / p.home.length) * 100) : 0])) },
+    { stat: 'Visitante', ...Object.fromEntries(playerData.map(p => [p.name, p.away.length > 0 ? Math.round((p.awayWins / p.away.length) * 100) : 0])) },
+    { stat: 'Defensa', ...Object.fromEntries(playerData.map(p => { const maxGc = Math.max(...playerData.map(x => x.totalGc), 1); return [p.name, Math.round((1 - p.totalGc / maxGc) * 100)] })) },
+  ]
+
+  // 4. Distribución G/E/P por jugador (BarChart apilado)
+  const resultDistData = playerData.map(p => ({
+    name: p.name,
+    Victorias: p.wins,
+    Empates: p.draws,
+    Derrotas: p.losses,
+  }))
+
+  // 5. Goles por jornada (quién metió en cada fecha)
+  const goalsPerRound = roundsPlayed.map(round => {
+    const entry = { jornada: `J${round.round}` }
+    players.forEach(name => {
+      let g = 0
+      round.matches.forEach(m => {
+        if (!m.played) return
+        if (m.home === name) g += m.homeGoals
+        if (m.away === name) g += m.awayGoals
+      })
+      entry[name] = g
+    })
+    return entry
+  })
+
+  // Head to head matrix
+  const h2h = {}
+  players.forEach(a => { h2h[a] = {}; players.forEach(b => { h2h[a][b] = { g: 0, e: 0, p: 0 } }) })
+  allMatches.forEach(m => {
+    const diff = m.homeGoals - m.awayGoals
+    if (diff > 0) { h2h[m.home][m.away].g++; h2h[m.away][m.home].p++ }
+    else if (diff < 0) { h2h[m.home][m.away].p++; h2h[m.away][m.home].g++ }
+    else { h2h[m.home][m.away].e++; h2h[m.away][m.home].e++ }
+  })
 
   if (totalMatches === 0) {
     return (
@@ -76,7 +229,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     <div className="stats">
       <h2>📊 Estadísticas del Torneo</h2>
 
-      {/* KPIs */}
+      {/* ── KPIs ── */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">⚽</div>
@@ -122,41 +275,157 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
         )}
       </div>
 
-      {/* Goles a favor y en contra */}
-      <h3>⚽ Goles a favor y en contra</h3>
-      <div className="double-chart">
-        {[...standings].sort((a, b) => b.gf - a.gf).map(s => (
-          <div key={s.name} className={`double-chart-row ${isDisabled(s.name) ? 'row-disabled' : ''}`}>
-            <div className="double-chart-name">
-              <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className={`avatar ${isDisabled(s.name) ? 'avatar-disabled' : ''}`} />
-              <span className={isDisabled(s.name) ? 'player-disabled' : ''}>{s.name}</span>
-            </div>
-            <div className="double-chart-bars">
-              <div className="bar-wrap">
-                <div className="bar bar-gf" style={{ width: `${(s.gf / maxGf) * 100}%` }} />
-                <span className="bar-val">{s.gf}</span>
+      {/* ── Salud del equipo (PES-style) ── */}
+      <SectionTitle>💊 Salud del equipo</SectionTitle>
+      <div className="health-grid">
+        {playerData.map(p => {
+          const h = p.health
+          return (
+            <div
+              key={p.name}
+              className={`health-card ${isDisabled(p.name) ? 'perf-card-disabled' : ''}`}
+              style={{ '--hc': h.color }}
+            >
+              <img
+                src={`/players/${p.name.toLowerCase()}.png`}
+                alt={p.name}
+                className={`health-avatar ${isDisabled(p.name) ? 'avatar-disabled' : ''}`}
+              />
+              <div className="health-info">
+                <span className={`health-name ${isDisabled(p.name) ? 'player-disabled' : ''}`}>{p.name}</span>
+                <span className="health-sublabel">Últimos 3 partidos</span>
               </div>
-              <div className="bar-wrap">
-                <div className="bar bar-gc" style={{ width: `${(s.gc / maxGc) * 100}%` }} />
-                <span className="bar-val gc">{s.gc}</span>
+              <div className="health-right">
+                {h.score >= 0 && (
+                  <div className="health-bar-wrap">
+                    <div className="health-bar-track">
+                      <div
+                        className="health-bar-fill"
+                        style={{ width: `${Math.round(h.score * 100)}%`, background: h.color }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="health-arrow-big" style={{ color: h.color }}>
+                  {h.arrow}
+                </div>
+                <span className="health-status" style={{ color: h.color }}>{h.label}</span>
               </div>
             </div>
-          </div>
-        ))}
-        <div className="double-chart-legend">
-          <span><span className="legend-dot gf" />Goles a favor</span>
-          <span><span className="legend-dot gc" />Goles en contra</span>
-        </div>
+          )
+        })}
       </div>
 
-      {/* Forma reciente + rendimiento local/visitante */}
-      <h3>📋 Rendimiento por jugador</h3>
+      {/* ── 1. Goles a favor vs en contra ── */}
+      <SectionTitle>⚽ Goles a favor, en contra y diferencia</SectionTitle>
+      <div className="chart-card">
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={goalsBarData} margin={{ top: 8, right: 20, left: -10, bottom: 0 }} barGap={3} barCategoryGap="28%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
+            <Bar dataKey="A favor"    fill="#818cf8" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="En contra"  fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="Diferencia" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── 2. Puntos acumulados por jornada ── */}
+      <SectionTitle>📈 Puntos acumulados por jornada</SectionTitle>
+      <div className="chart-card">
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={cumulativeData} margin={{ top: 8, right: 20, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+            <XAxis dataKey="jornada" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
+            {players.map(name => (
+              <Line
+                key={name}
+                type="monotone"
+                dataKey={name}
+                stroke={getColor(name)}
+                strokeWidth={2.5}
+                dot={{ r: 3.5, fill: getColor(name), strokeWidth: 0 }}
+                activeDot={{ r: 5.5, strokeWidth: 0 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── 3. Goles anotados por jornada ── */}
+      <SectionTitle>🔥 Goles anotados por jornada</SectionTitle>
+      <div className="chart-card">
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={goalsPerRound} margin={{ top: 8, right: 20, left: -10, bottom: 0 }} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+            <XAxis dataKey="jornada" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
+            {players.map(name => (
+              <Bar key={name} dataKey={name} stackId="a" fill={getColor(name)} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── 4. Distribución G/E/P ── */}
+      <SectionTitle>🏆 Victorias, empates y derrotas</SectionTitle>
+      <div className="chart-card">
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={resultDistData} margin={{ top: 8, right: 20, left: -10, bottom: 0 }} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
+            <Bar dataKey="Victorias" stackId="r" fill="#34d399" />
+            <Bar dataKey="Empates"   stackId="r" fill="#fbbf24" />
+            <Bar dataKey="Derrotas"  stackId="r" fill="#f87171" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── 5. Radar de rendimiento ── */}
+      <SectionTitle>🕸️ Radar de rendimiento</SectionTitle>
+      <div className="chart-card">
+        <ResponsiveContainer width="100%" height={320}>
+          <RadarChart data={radarData} margin={{ top: 16, right: 40, left: 40, bottom: 16 }}>
+            <PolarGrid stroke="rgba(148,163,184,0.18)" />
+            <PolarAngleAxis dataKey="stat" tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} />
+            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#475569', fontSize: 10 }} tickCount={4} />
+            {players.map(name => (
+              <Radar
+                key={name}
+                name={name}
+                dataKey={name}
+                stroke={getColor(name)}
+                fill={getColor(name)}
+                fillOpacity={0.12}
+                strokeWidth={2}
+              />
+            ))}
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
+            <Tooltip content={<CustomTooltip />} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Forma reciente + rendimiento local/visitante ── */}
+      <SectionTitle>📋 Rendimiento por jugador</SectionTitle>
       <div className="player-perf-grid">
         {playerData.map(p => (
           <div key={p.name} className={`player-perf-card ${isDisabled(p.name) ? 'perf-card-disabled' : ''}`}>
             <div className="perf-header">
               <img src={`/players/${p.name.toLowerCase()}.png`} alt={p.name} className={`avatar ${isDisabled(p.name) ? 'avatar-disabled' : ''}`} />
               <span className={`perf-name ${isDisabled(p.name) ? 'player-disabled' : ''}`}>{p.name}</span>
+              <HealthBadge health={p.health} size="sm" />
               {isDisabled(p.name)
                 ? <span className="disabled-tag">inactivo</span>
                 : <span className="win-rate" style={{ color: p.winRate >= 50 ? 'var(--success)' : 'var(--danger)' }}>
@@ -169,7 +438,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
               {p.recent.length === 0
                 ? <span className="no-form">—</span>
                 : p.recent.map((r, i) => (
-                  <span key={i} className={`form-badge form-${r}`}>{r === 'G' ? 'G' : r === 'P' ? 'P' : 'E'}</span>
+                  <span key={i} className={`form-badge form-${r}`}>{r}</span>
                 ))
               }
             </div>
@@ -191,8 +460,8 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
         ))}
       </div>
 
-      {/* Head to head */}
-      <h3>⚔️ Historial directo</h3>
+      {/* ── Head to head ── */}
+      <SectionTitle>⚔️ Historial directo</SectionTitle>
       <div className="h2h-wrapper">
         <table className="h2h-table">
           <thead>
