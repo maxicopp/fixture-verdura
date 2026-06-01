@@ -131,9 +131,9 @@
           "id": "4-0",
           "home": "Max",
           "away": "Gayco",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 7,
+          "awayGoals": 5,
+          "played": true
         },
         {
           "id": "4-1",
