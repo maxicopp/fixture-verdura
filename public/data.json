@@ -118,9 +118,9 @@
           "id": "3-2",
           "home": "Kevin",
           "away": "Negro",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 1,
+          "played": true
         }
       ]
     },
@@ -147,9 +147,9 @@
           "id": "4-2",
           "home": "Nacho",
           "away": "Kevin",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 1,
+          "played": true
         }
       ]
     },
