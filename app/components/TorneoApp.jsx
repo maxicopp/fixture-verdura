@@ -1,21 +1,24 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Standings from './Standings'
 import Stats from './Stats'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
 
 const TABS = [
-  { key: 'standings', label: '🏆 Posiciones',   path: '/' },
-  { key: 'fixture',   label: '📋 Fixture',       path: '/fixture' },
-  { key: 'stats',     label: '📊 Estadísticas',  path: '/stats' },
+  { key: 'standings', label: '🏆 Posiciones' },
+  { key: 'fixture',   label: '📋 Fixture' },
+  { key: 'stats',     label: '📊 Estadísticas' },
 ]
 
 export default function TorneoApp() {
-  const router   = useRouter()
-  const pathname = usePathname()
+  const router      = useRouter()
+  const searchParams = useSearchParams()
+  const tabParam    = searchParams.get('tab')
+  const activeTab   = TABS.find(t => t.key === tabParam)?.key ?? 'standings'
+
   const [players, setPlayers] = useState([])
   const [fixture, setFixture] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +34,17 @@ export default function TorneoApp() {
   }, [])
 
   const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
-  const activeTab = TABS.find(t => t.path === pathname)?.key ?? 'standings'
+
+  const handleTab = (key) => {
+    const params = new URLSearchParams(searchParams)
+    if (key === 'standings') {
+      params.delete('tab')
+    } else {
+      params.set('tab', key)
+    }
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }
 
   if (loading) {
     return <div className="app"><div className="loading">Cargando torneo...</div></div>
@@ -57,7 +70,7 @@ export default function TorneoApp() {
           <button
             key={tab.key}
             className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => router.push(tab.path, { scroll: false })}
+            onClick={() => handleTab(tab.key)}
           >
             {tab.label}
           </button>
