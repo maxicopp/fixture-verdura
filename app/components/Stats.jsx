@@ -257,28 +257,37 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
       <h2>📊 Estadísticas del Torneo</h2>
 
       {/* ── Filtro de jugadores ── */}
-      <div className="player-filter">
+      <div className="player-filter" role="group" aria-label="Filtrar jugadores">
         <button
-          className={`filter-chip ${allActive ? 'filter-chip-active' : ''}`}
+          className={`filter-chip filter-chip-all ${allActive ? 'filter-chip-all-active' : 'filter-chip-all-partial'}`}
           onClick={toggleAll}
+          aria-pressed={allActive}
+          title="Mostrar todos los jugadores"
         >
-          Todos
+          {allActive ? '✓ Todos' : `Todos (${selectedPlayers.size}/${allPlayers.length})`}
         </button>
+
+        <span className="filter-divider" aria-hidden="true" />
+
         {allPlayers.map(name => {
           const active = selectedPlayers.has(name)
           return (
             <button
               key={name}
-              className={`filter-chip ${active ? 'filter-chip-active' : ''}`}
-              style={active ? { '--chip-color': getColor(name) } : {}}
+              className={`filter-chip ${active ? 'filter-chip-active' : 'filter-chip-inactive'}`}
+              style={{ '--chip-color': getColor(name) }}
               onClick={() => togglePlayer(name)}
+              aria-pressed={active}
+              title={active ? `Ocultar a ${name}` : `Mostrar a ${name}`}
             >
               <img
                 src={`/players/${name.toLowerCase()}.png`}
-                alt={name}
+                alt=""
+                aria-hidden="true"
                 className={`filter-chip-avatar ${isDisabled(name) ? 'avatar-disabled' : ''}`}
               />
               {name}
+              {active && <span className="filter-chip-check" aria-hidden="true">✓</span>}
             </button>
           )
         })}
