@@ -158,7 +158,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
   // 2. Puntos acumulados por jornada (LineChart)
   const roundsPlayed = fixture.filter(r => r.matches.some(m => m.played))
   const cumulativeData = roundsPlayed.map((round, ri) => {
-    const entry = { jornada: `J${round.round}` }
+    const entry = { jornada: `F${round.round}` }
     players.forEach(name => {
       let pts = 0
       for (let i = 0; i <= ri; i++) {
@@ -193,7 +193,7 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
 
   // 5. Goles por jornada (quién metió en cada fecha)
   const goalsPerRound = roundsPlayed.map(round => {
-    const entry = { jornada: `J${round.round}` }
+    const entry = { jornada: `F${round.round}` }
     players.forEach(name => {
       let g = 0
       round.matches.forEach(m => {
