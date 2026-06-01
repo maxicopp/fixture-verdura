@@ -131,17 +131,17 @@
           "id": "4-0",
           "home": "Max",
           "away": "Gayco",
-          "homeGoals": 7,
-          "awayGoals": 5,
+          "homeGoals": 0,
+          "awayGoals": 1,
           "played": true
         },
         {
           "id": "4-1",
           "home": "Vulvega",
           "away": "Negro",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 0,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "4-2",
