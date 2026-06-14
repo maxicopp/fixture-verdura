@@ -160,9 +160,9 @@
           "id": "v0-0",
           "home": "Negro",
           "away": "Max",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 0,
+          "awayGoals": 3,
+          "played": true
         },
         {
           "id": "v0-1",
