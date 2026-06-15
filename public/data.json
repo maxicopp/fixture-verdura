@@ -160,8 +160,8 @@
           "id": "v0-0",
           "home": "Negro",
           "away": "Max",
-          "homeGoals": 0,
-          "awayGoals": 3,
+          "homeGoals": 1,
+          "awayGoals": 1,
           "played": true
         },
         {
@@ -176,9 +176,9 @@
           "id": "v0-2",
           "home": "Nacho",
           "away": "Vulvega",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 3,
+          "awayGoals": 1,
+          "played": true
         }
       ]
     },
@@ -247,9 +247,9 @@
           "id": "v3-0",
           "home": "Vulvega",
           "away": "Max",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 0,
+          "awayGoals": 2,
+          "played": true
         },
         {
           "id": "v3-1",
