@@ -234,9 +234,9 @@
           "id": "v2-2",
           "home": "Gayco",
           "away": "Negro",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 0,
+          "played": true
         }
       ]
     },
