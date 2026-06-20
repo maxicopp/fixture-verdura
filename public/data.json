@@ -205,9 +205,9 @@
           "id": "v1-2",
           "home": "Vulvega",
           "away": "Gayco",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 0,
+          "awayGoals": 5,
+          "played": true
         }
       ]
     },
