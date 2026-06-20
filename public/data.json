@@ -168,9 +168,9 @@
           "id": "v0-1",
           "home": "Kevin",
           "away": "Gayco",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v0-2",
@@ -189,17 +189,17 @@
           "id": "v1-0",
           "home": "Kevin",
           "away": "Max",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v1-1",
           "home": "Nacho",
           "away": "Negro",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 2,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v1-2",
@@ -226,9 +226,9 @@
           "id": "v2-1",
           "home": "Vulvega",
           "away": "Kevin",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 0,
+          "played": true
         },
         {
           "id": "v2-2",
@@ -263,9 +263,9 @@
           "id": "v3-2",
           "home": "Negro",
           "away": "Kevin",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 0,
+          "played": true
         }
       ]
     },
