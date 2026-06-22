@@ -58,6 +58,8 @@ export default function TorneoApp() {
   const [players, setPlayers]               = useState([])
   const [fixture, setFixture]               = useState([])
   const [disabledPlayers, setDisabledPlayers] = useState([])
+  const [tournamentId, setTournamentId]     = useState(null)
+  const [tournamentStatus, setTournamentStatus] = useState(null)
   const [loading, setLoading]               = useState(true)
 
   useEffect(() => {
@@ -74,6 +76,8 @@ export default function TorneoApp() {
         setPlayers(data.players)
         setFixture(data.fixture)
         setDisabledPlayers(data.disabledPlayers || [])
+        setTournamentId(data.tournament?.id || null)
+        setTournamentStatus(data.tournament?.status || null)
       })
       .catch(() => {
         fetch('/data.json').then(r => r.json()).then(fallback => {
@@ -99,6 +103,22 @@ export default function TorneoApp() {
     const active = standings.filter(s => !disabledPlayers.includes(s.name))
     return active[0] ?? null
   }, [isFinished, standings, disabledPlayers])
+
+  // Cuando el torneo termina, persistir el campeón en la DB automáticamente
+  useEffect(() => {
+    if (!isFinished || !champion || !tournamentId || tournamentStatus === 'finished') return
+    const topScorer = [...standings].sort((a, b) => b.gf - a.gf)[0]
+    fetch(`/api/tournaments/${tournamentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'finish',
+        champion: champion.name,
+        top_scorer: topScorer?.name || null,
+        top_scorer_goals: topScorer?.gf || 0,
+      }),
+    }).then(() => setTournamentStatus('finished'))
+  }, [isFinished, champion, tournamentId, tournamentStatus, standings])
 
   // ─── Navigation handlers ─────────────────────────────────────────────────
   const navigate = (section, tab) => {
