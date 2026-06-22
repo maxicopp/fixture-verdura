@@ -3,3 +3,12 @@ node_modules
 dist
 .env
 .env.local
+
+# SQLite database (local dev)
+torneo.db
+torneo.db-wal
+torneo.db-shm
+
+# Environment
+.env
+.env.local

@@ -5,58 +5,107 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Standings from './Standings'
 import Stats from './Stats'
 import Champion from './Champion'
+import HallOfFame from './HallOfFame'
+import HistoricalStats from './HistoricalStats'
+import HeadToHead from './HeadToHead'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
 
-const TABS = [
-  { key: 'standings', label: '🏆 Posiciones' },
-  { key: 'fixture',   label: '📋 Fixture' },
-  { key: 'stats',     label: '📊 Estadísticas' },
+// ─── Navegación: 2 niveles claros ───────────────────────────────────────────
+// Nivel 1: Contexto (Torneo Actual vs Historial vs Head to Head)
+// Nivel 2: Sub-secciones dentro de cada contexto
+
+const SECTIONS = [
+  {
+    key: 'current',
+    label: 'Torneo Actual',
+    icon: '⚽',
+    tabs: [
+      { key: 'standings', label: 'Posiciones' },
+      { key: 'fixture',   label: 'Fixture' },
+      { key: 'stats',     label: 'Estadísticas' },
+    ],
+  },
+  {
+    key: 'history',
+    label: 'Historial',
+    icon: '📜',
+    tabs: [
+      { key: 'table',    label: 'Tabla Histórica' },
+      { key: 'hall',     label: 'Salón de la Gloria' },
+    ],
+  },
+  {
+    key: 'h2h',
+    label: 'Duelos',
+    icon: '⚔️',
+    tabs: [],
+  },
 ]
 
 export default function TorneoApp() {
-  const router      = useRouter()
+  const router       = useRouter()
   const searchParams = useSearchParams()
-  const tabParam    = searchParams.get('tab')
-  const activeTab   = TABS.find(t => t.key === tabParam)?.key ?? 'standings'
 
-  const [players, setPlayers] = useState([])
-  const [fixture, setFixture] = useState([])
-  const [loading, setLoading] = useState(true)
+  // Parse URL params
+  const sectionParam = searchParams.get('s') || 'current'
+  const tabParam     = searchParams.get('t') || ''
+
+  const activeSection = SECTIONS.find(s => s.key === sectionParam) || SECTIONS[0]
+  const activeTab     = activeSection.tabs.find(t => t.key === tabParam)?.key
+                        || activeSection.tabs[0]?.key || ''
+
+  const [players, setPlayers]               = useState([])
+  const [fixture, setFixture]               = useState([])
+  const [disabledPlayers, setDisabledPlayers] = useState([])
+  const [loading, setLoading]               = useState(true)
 
   useEffect(() => {
-    fetch('/data.json')
+    fetch('/api/tournaments/active')
       .then(r => r.json())
       .then(data => {
+        if (data.error) {
+          return fetch('/data.json').then(r => r.json()).then(fallback => {
+            setPlayers(fallback.players)
+            setFixture(fallback.fixture?.length > 0 ? fallback.fixture : generateFixture(fallback.players))
+            setDisabledPlayers(DISABLED_PLAYERS)
+          })
+        }
         setPlayers(data.players)
-        setFixture(data.fixture?.length > 0 ? data.fixture : generateFixture(data.players))
-        setLoading(false)
+        setFixture(data.fixture)
+        setDisabledPlayers(data.disabledPlayers || [])
       })
+      .catch(() => {
+        fetch('/data.json').then(r => r.json()).then(fallback => {
+          setPlayers(fallback.players)
+          setFixture(fallback.fixture?.length > 0 ? fallback.fixture : generateFixture(fallback.players))
+          setDisabledPlayers(DISABLED_PLAYERS)
+        })
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
 
-  // Detectar si el torneo terminó: todos los partidos jugados y hay al menos un jugador activo
   const isFinished = useMemo(() => {
     if (fixture.length === 0) return false
-    const activePlayers = players.filter(p => !DISABLED_PLAYERS.includes(p))
+    const activePlayers = players.filter(p => !disabledPlayers.includes(p))
     if (activePlayers.length === 0) return false
-    return fixture.every(r => r.matches.every(m => m.played || (DISABLED_PLAYERS.includes(m.home) || DISABLED_PLAYERS.includes(m.away))))
-  }, [fixture, players])
+    return fixture.every(r => r.matches.every(m => m.played || (disabledPlayers.includes(m.home) || disabledPlayers.includes(m.away))))
+  }, [fixture, players, disabledPlayers])
 
-  // Campeón: primer lugar entre jugadores activos
   const champion = useMemo(() => {
     if (!isFinished) return null
-    const active = standings.filter(s => !DISABLED_PLAYERS.includes(s.name))
+    const active = standings.filter(s => !disabledPlayers.includes(s.name))
     return active[0] ?? null
-  }, [isFinished, standings])
+  }, [isFinished, standings, disabledPlayers])
 
-  const handleTab = (key) => {
-    const params = new URLSearchParams(searchParams)
-    if (key === 'standings') {
-      params.delete('tab')
-    } else {
-      params.set('tab', key)
+  // ─── Navigation handlers ─────────────────────────────────────────────────
+  const navigate = (section, tab) => {
+    const params = new URLSearchParams()
+    if (section !== 'current') params.set('s', section)
+    if (tab && tab !== SECTIONS.find(s => s.key === section)?.tabs[0]?.key) {
+      params.set('t', tab)
     }
     const qs = params.toString()
     router.replace(qs ? `/?${qs}` : '/', { scroll: false })
@@ -73,33 +122,75 @@ export default function TorneoApp() {
   return (
     <div className="app">
       {champion && (
-        <Champion champion={champion} standings={standings.filter(s => !DISABLED_PLAYERS.includes(s.name))} />
+        <Champion champion={champion} standings={standings.filter(s => !disabledPlayers.includes(s.name))} />
       )}
+
       <header className="header">
-        <h1>Torneo Los Verduras Apertura 2026</h1>
-        <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
-          <span className="progress-text">{playedMatches}/{totalMatches} jugados ({progress}%)</span>
-        </div>
+        <h1>Torneo Los Verduras</h1>
+        <p className="subtitle">Apertura 2026 · {players.length} jugadores · {totalMatches} partidos</p>
+        {activeSection.key === 'current' && (
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
+            <span className="progress-text">{playedMatches}/{totalMatches} jugados ({progress}%)</span>
+          </div>
+        )}
       </header>
 
-      <nav className="tabs">
-        {TABS.map(tab => (
+      {/* ─── Nivel 1: Section switcher ─── */}
+      <nav className="section-nav" aria-label="Secciones principales">
+        {SECTIONS.map(section => (
           <button
-            key={tab.key}
-            className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => handleTab(tab.key)}
+            key={section.key}
+            className={`section-btn ${activeSection.key === section.key ? 'section-btn-active' : ''}`}
+            onClick={() => navigate(section.key, section.tabs[0]?.key)}
+            aria-current={activeSection.key === section.key ? 'page' : undefined}
           >
-            {tab.label}
+            <span className="section-btn-icon">{section.icon}</span>
+            <span className="section-btn-label">{section.label}</span>
           </button>
         ))}
       </nav>
 
+      {/* ─── Nivel 2: Sub-tabs (solo si la sección tiene tabs) ─── */}
+      {activeSection.tabs.length > 0 && (
+        <nav className="sub-tabs" aria-label="Sub-secciones">
+          {activeSection.tabs.map(tab => (
+            <button
+              key={tab.key}
+              className={`sub-tab ${activeTab === tab.key ? 'sub-tab-active' : ''}`}
+              onClick={() => navigate(activeSection.key, tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {/* ─── Contenido ─── */}
       <main className="content">
-        {activeTab === 'standings' && <Standings standings={standings} disabledPlayers={DISABLED_PLAYERS} />}
-        {activeTab === 'fixture'   && <FixtureReadOnly fixture={fixture} disabledPlayers={DISABLED_PLAYERS} />}
-        {activeTab === 'stats'     && <Stats fixture={fixture} standings={standings} disabledPlayers={DISABLED_PLAYERS} />}
+        {/* Torneo Actual */}
+        {activeSection.key === 'current' && activeTab === 'standings' && (
+          <Standings standings={standings} disabledPlayers={disabledPlayers} />
+        )}
+        {activeSection.key === 'current' && activeTab === 'fixture' && (
+          <FixtureReadOnly fixture={fixture} disabledPlayers={disabledPlayers} />
+        )}
+        {activeSection.key === 'current' && activeTab === 'stats' && (
+          <Stats fixture={fixture} standings={standings} disabledPlayers={disabledPlayers} />
+        )}
+
+        {/* Historial */}
+        {activeSection.key === 'history' && activeTab === 'table' && (
+          <HistoricalStats />
+        )}
+        {activeSection.key === 'history' && activeTab === 'hall' && (
+          <HallOfFame />
+        )}
+
+        {/* Head to Head */}
+        {activeSection.key === 'h2h' && (
+          <HeadToHead players={players} />
+        )}
       </main>
     </div>
   )

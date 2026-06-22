@@ -24,14 +24,14 @@ function getResult(r) {
 }
 
 const PLAYER_COLORS = {
-  Max:     '#818cf8', // indigo-400
-  Gayco:   '#fbbf24', // amber-400
-  Vulvega: '#34d399', // emerald-400
-  Nacho:   '#f87171', // red-400
-  Kevin:   '#60a5fa', // blue-400
-  Negro:   '#a78bfa', // violet-400
+  Max:     '#4f6df5', // calm blue
+  Gayco:   '#d97706', // muted amber
+  Vulvega: '#10b981', // teal
+  Nacho:   '#ef6c6c', // soft red
+  Kevin:   '#6388f8', // light blue
+  Negro:   '#64748b', // slate
 }
-const DEFAULT_COLOR = '#94a3b8'
+const DEFAULT_COLOR = '#9ca3af'
 const getColor = (name) => PLAYER_COLORS[name] ?? DEFAULT_COLOR
 
 // ─── form health (PES-style) ─────────────────────────────────────────────────
@@ -81,20 +81,20 @@ function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: '#1e293b',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--surface-elevated)',
+      border: '1px solid var(--border-strong)',
       borderRadius: 10,
       padding: '10px 14px',
       fontSize: 13,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
       minWidth: 140,
     }}>
-      <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
+      <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
       {payload.map(p => (
         <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '3px 0' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-          <span style={{ color: '#cbd5e1', flex: 1 }}>{p.name}</span>
-          <strong style={{ color: '#f1f5f9' }}>{p.value}</strong>
+          <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{p.name}</span>
+          <strong style={{ color: 'var(--text)' }}>{p.value}</strong>
         </div>
       ))}
     </div>
@@ -390,9 +390,9 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
             <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
-            <Bar dataKey="A favor"    fill="#818cf8" radius={[4, 4, 0, 0]} maxBarSize={28} />
-            <Bar dataKey="En contra"  fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={28} />
-            <Bar dataKey="Diferencia" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="A favor"    fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="En contra"  fill="var(--chart-4)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="Diferencia" fill="var(--chart-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -449,9 +449,9 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
             <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
-            <Bar dataKey="Victorias" stackId="r" fill="#34d399" />
-            <Bar dataKey="Empates"   stackId="r" fill="#fbbf24" />
-            <Bar dataKey="Derrotas"  stackId="r" fill="#f87171" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Victorias" stackId="r" fill="var(--chart-2)" />
+            <Bar dataKey="Empates"   stackId="r" fill="var(--chart-3)" />
+            <Bar dataKey="Derrotas"  stackId="r" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

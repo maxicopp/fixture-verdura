@@ -1,124 +1,202 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import Fixture from '../components/Fixture'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Standings from '../components/Standings'
-import Stats from '../components/Stats'
-import { generateFixture, calcStandings } from '../lib/fixture'
+import { calcStandings } from '../lib/fixture'
 
 export default function AdminPage() {
+  const [authed, setAuthed] = useState(false)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/admin/auth')
+      .then(r => r.json())
+      .then(data => setAuthed(data.authenticated))
+      .catch(() => setAuthed(false))
+      .finally(() => setChecking(false))
+  }, [])
+
+  if (checking) {
+    return <div className="app"><div className="loading">Verificando sesión...</div></div>
+  }
+
+  if (!authed) {
+    return <LoginForm onSuccess={() => setAuthed(true)} />
+  }
+
+  return <AdminPanel onLogout={() => setAuthed(false)} />
+}
+
+// ─── Login Form ──────────────────────────────────────────────────────────────
+
+function LoginForm({ onSuccess }) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        onSuccess()
+      } else {
+        setError(data.error || 'Error de autenticación')
+      }
+    } catch {
+      setError('Error de conexión')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="app">
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-header">
+            <span className="login-icon">🔐</span>
+            <h1 className="login-title">Admin Panel</h1>
+            <p className="login-subtitle">Torneo Los Verduras</p>
+          </div>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="login-field">
+              <label htmlFor="username">Usuario</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Ingresá tu usuario"
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="login-field">
+              <label htmlFor="password">Contraseña</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            {error && <p className="login-error">{error}</p>}
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? 'Ingresando...' : 'Ingresar'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Admin Panel ─────────────────────────────────────────────────────────────
+
+function AdminPanel({ onLogout }) {
   const [players, setPlayers] = useState([])
   const [fixture, setFixture] = useState([])
-  const [activeTab, setActiveTab] = useState('fixture')
   const [loading, setLoading] = useState(true)
-  const [saved, setSaved] = useState(false)
-  const [mountKey, setMountKey] = useState(0)
+  const [activeTab, setActiveTab] = useState('fixture')
   const [notification, setNotification] = useState('')
-  const fileInputRef = useRef(null)
-
-  // Refs para tener siempre el valor fresco en callbacks sin stale closures
-  const playersRef = useRef([])
-  const fixtureRef = useRef([])
-  useEffect(() => { playersRef.current = players }, [players])
-  useEffect(() => { fixtureRef.current = fixture }, [fixture])
+  const [saving, setSaving] = useState(false)
 
   const notify = (msg) => {
     setNotification(msg)
     setTimeout(() => setNotification(''), 3000)
   }
 
-  const loadData = (data) => {
-    const p = data.players || []
-    const f = Array.isArray(data.fixture) && data.fixture.length > 0
-      ? data.fixture
-      : generateFixture(p)
-    setPlayers(p)
-    setFixture(f)
-    setMountKey(k => k + 1)
-  }
-
-  useEffect(() => {
-    fetch('/data.json', { cache: 'no-store' })
+  const loadData = useCallback(() => {
+    fetch('/api/tournaments/active')
       .then(r => r.json())
       .then(data => {
-        loadData(data)
-        setLoading(false)
+        if (!data.error) {
+          setPlayers(data.players)
+          setFixture(data.fixture)
+        }
       })
+      .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => { loadData() }, [loadData])
 
   const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
 
-  const handleResult = (roundIdx, matchIdx, homeGoals, awayGoals) => {
-    setFixture(prev => {
-      const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
-      next[roundIdx].matches[matchIdx] = { ...next[roundIdx].matches[matchIdx], homeGoals, awayGoals, played: true }
-      return next
-    })
-    setSaved(false)
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth', { method: 'DELETE' })
+    onLogout()
   }
 
-  const handleReset = (roundIdx, matchIdx) => {
-    setFixture(prev => {
-      const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
-      next[roundIdx].matches[matchIdx] = { ...next[roundIdx].matches[matchIdx], homeGoals: null, awayGoals: null, played: false }
-      return next
-    })
-    setSaved(false)
-    setMountKey(k => k + 1)
-  }
+  const handleResult = async (roundIdx, matchIdx, homeGoals, awayGoals) => {
+    const match = fixture[roundIdx].matches[matchIdx]
+    setSaving(true)
 
-  const handleResetAll = useCallback(() => {
-    if (!confirm('¿Seguro que querés reiniciar todo el fixture?')) return
-    const currentPlayers = playersRef.current
-    const emptyData = { players: currentPlayers, fixture: [] }
-    navigator.clipboard.writeText(JSON.stringify(emptyData, null, 2))
-    setFixture(generateFixture(currentPlayers))
-    setMountKey(k => k + 1)
-    setSaved(true)
-    notify('🔄 Fixture reiniciado. JSON vacío copiado al clipboard.')
-  }, [])
-
-  const downloadJSON = useCallback(() => {
-    const data = { players: playersRef.current, fixture: fixtureRef.current }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'data.json'
-    a.click()
-    URL.revokeObjectURL(url)
-    setSaved(true)
-    notify('📥 data.json descargado')
-  }, [])
-
-  const copyJSON = useCallback(() => {
-    const data = { players: playersRef.current, fixture: fixtureRef.current }
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-    setSaved(true)
-    notify('📋 JSON copiado al clipboard')
-  }, [])
-
-  const importJSON = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const raw = ev.target.result
-        const data = JSON.parse(raw)
-        if (!data.players || !Array.isArray(data.players)) {
-          notify('❌ JSON inválido: falta el campo "players"')
-          return
-        }
-        loadData(data)
-        setSaved(false)
-        notify(`✅ Importado: ${data.players.length} jugadores`)
-      } catch (err) {
-        notify('❌ Error al parsear el JSON: ' + err.message)
+    try {
+      const res = await fetch('/api/admin/save-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          match_key: match.id,
+          home_goals: homeGoals,
+          away_goals: awayGoals,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        // Actualizar estado local
+        setFixture(prev => {
+          const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
+          next[roundIdx].matches[matchIdx] = { ...match, homeGoals, awayGoals, played: true }
+          return next
+        })
+        notify(`✅ ${match.home} ${homeGoals} - ${awayGoals} ${match.away}`)
+      } else {
+        notify(`❌ ${data.error || 'Error al guardar'}`)
       }
+    } catch {
+      notify('❌ Error de conexión')
+    } finally {
+      setSaving(false)
     }
-    reader.readAsText(file)
-    e.target.value = ''
+  }
+
+  const handleReset = async (roundIdx, matchIdx) => {
+    const match = fixture[roundIdx].matches[matchIdx]
+    if (!confirm(`¿Resetear ${match.home} vs ${match.away}?`)) return
+
+    try {
+      const res = await fetch('/api/admin/reset-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ match_key: match.id }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setFixture(prev => {
+          const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
+          next[roundIdx].matches[matchIdx] = { ...match, homeGoals: null, awayGoals: null, played: false }
+          return next
+        })
+        notify('🔄 Partido reseteado')
+      } else {
+        notify(`❌ ${data.error}`)
+      }
+    } catch {
+      notify('❌ Error de conexión')
+    }
   }
 
   if (loading) {
@@ -132,35 +210,28 @@ export default function AdminPage() {
   return (
     <div className="app">
       <header className="header">
-        <div className="admin-badge">🔒 ADMIN</div>
+        <div className="admin-header-row">
+          <div className="admin-badge">🔒 ADMIN</div>
+          <button className="admin-logout" onClick={handleLogout}>Cerrar sesión</button>
+        </div>
         <h1>Torneo Los Verduras Apertura 2026</h1>
         <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
           <span className="progress-text">{playedMatches}/{totalMatches} jugados ({progress}%)</span>
         </div>
+        {notification && (
+          <div className={`admin-notification ${notification.startsWith('❌') ? 'admin-notification-error' : ''}`}>
+            {notification}
+          </div>
+        )}
+        {saving && <div className="admin-saving">Guardando...</div>}
       </header>
-
-      <div className="admin-actions">
-        <button className="btn-import" onClick={() => fileInputRef.current?.click()}>
-          📂 Importar JSON
-        </button>
-        <input ref={fileInputRef} type="file" accept=".json" onChange={importJSON} style={{ display: 'none' }} />
-        <button className="btn-download" onClick={downloadJSON}>
-          📥 Descargar data.json
-        </button>
-        <button className="btn-copy" onClick={copyJSON}>
-          📋 Copiar JSON
-        </button>
-        {notification && <span className={notification.startsWith('❌') ? 'unsaved-indicator' : 'save-indicator'}>{notification}</span>}
-        {!notification && !saved && playedMatches > 0 && <span className="unsaved-indicator">⚠️ Cambios sin exportar</span>}
-      </div>
 
       <nav className="tabs">
         {[
           { key: 'fixture', label: '📋 Fixture' },
           { key: 'standings', label: '🏆 Posiciones' },
-          { key: 'stats', label: '📊 Estadísticas' },
         ].map(tab => (
           <button key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)}>
             {tab.label}
@@ -170,11 +241,119 @@ export default function AdminPage() {
 
       <main className="content">
         {activeTab === 'fixture' && (
-          <Fixture key={mountKey} fixture={fixture} onResult={handleResult} onReset={handleReset} onResetAll={handleResetAll} />
+          <AdminFixture fixture={fixture} onResult={handleResult} onReset={handleReset} />
         )}
-        {activeTab === 'standings' && <Standings key={mountKey} standings={standings} />}
-        {activeTab === 'stats' && <Stats key={mountKey} fixture={fixture} standings={standings} />}
+        {activeTab === 'standings' && <Standings standings={standings} />}
       </main>
+    </div>
+  )
+}
+
+// ─── Admin Fixture (editable) ────────────────────────────────────────────────
+
+function AdminFixture({ fixture, onResult, onReset }) {
+  const [expandedRound, setExpandedRound] = useState(() => {
+    // Auto-abrir la primera fecha con partidos pendientes
+    const idx = fixture.findIndex(r => r.matches.some(m => !m.played))
+    return idx >= 0 ? idx : 0
+  })
+
+  return (
+    <div className="fixture">
+      <div className="fixture-header">
+        <h2>Editar resultados</h2>
+      </div>
+      {fixture.map((round, ri) => {
+        const played = round.matches.filter(m => m.played).length
+        const total = round.matches.length
+        const isExpanded = expandedRound === ri
+        return (
+          <div key={ri} className={`round-card ${isExpanded ? 'expanded' : ''}`}>
+            <button
+              className="round-header"
+              onClick={() => setExpandedRound(isExpanded ? -1 : ri)}
+            >
+              <span className="round-title">Fecha {round.round}</span>
+              <span className="round-badge">{played === total ? '✅' : `${played}/${total}`}</span>
+              <span className="round-chevron">{isExpanded ? '▲' : '▼'}</span>
+            </button>
+            {isExpanded && (
+              <div className="match-day">
+                {round.matches.map((match, mi) => (
+                  <AdminMatchCard
+                    key={match.id}
+                    match={match}
+                    onSave={(h, a) => onResult(ri, mi, h, a)}
+                    onReset={() => onReset(ri, mi)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function AdminMatchCard({ match, onSave, onReset }) {
+  const [homeGoals, setHomeGoals] = useState(match.played ? match.homeGoals : '')
+  const [awayGoals, setAwayGoals] = useState(match.played ? match.awayGoals : '')
+
+  // Sync with prop changes
+  useEffect(() => {
+    setHomeGoals(match.played ? match.homeGoals : '')
+    setAwayGoals(match.played ? match.awayGoals : '')
+  }, [match.played, match.homeGoals, match.awayGoals])
+
+  const canSave = homeGoals !== '' && awayGoals !== '' && Number(homeGoals) >= 0 && Number(awayGoals) >= 0
+
+  const handleSave = () => {
+    if (!canSave) return
+    onSave(Number(homeGoals), Number(awayGoals))
+  }
+
+  return (
+    <div className={`match-card ${match.played ? 'played' : 'pending'}`}>
+      <div className="match-teams">
+        <span className="team team-home">
+          {match.home}
+          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+        </span>
+        <div className="score-input">
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value={homeGoals}
+            onChange={e => setHomeGoals(e.target.value)}
+            placeholder="–"
+          />
+          <span>-</span>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value={awayGoals}
+            onChange={e => setAwayGoals(e.target.value)}
+            placeholder="–"
+          />
+        </div>
+        <span className="team team-away">
+          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+          {match.away}
+        </span>
+      </div>
+      <div className="match-actions">
+        <button className="btn-save" onClick={handleSave} disabled={!canSave}>
+          💾 Guardar
+        </button>
+        {match.played && (
+          <button className="btn-sm btn-danger" onClick={onReset}>
+            🔄 Resetear
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -2,13 +2,16 @@
   "name": "futbol-fixture",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "node app/lib/seed.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "@vercel/analytics": "^2.0.1",
     "next": "^15.3.2",
     "react": "^19.2.5",
