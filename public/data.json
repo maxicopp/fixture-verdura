@@ -284,9 +284,9 @@
           "id": "v4-1",
           "home": "Negro",
           "away": "Vulvega",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 2,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v4-2",
