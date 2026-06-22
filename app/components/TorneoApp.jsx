@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Standings from './Standings'
 import Stats from './Stats'
+import Champion from './Champion'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
 
@@ -35,6 +36,21 @@ export default function TorneoApp() {
 
   const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
 
+  // Detectar si el torneo terminó: todos los partidos jugados y hay al menos un jugador activo
+  const isFinished = useMemo(() => {
+    if (fixture.length === 0) return false
+    const activePlayers = players.filter(p => !DISABLED_PLAYERS.includes(p))
+    if (activePlayers.length === 0) return false
+    return fixture.every(r => r.matches.every(m => m.played || (DISABLED_PLAYERS.includes(m.home) || DISABLED_PLAYERS.includes(m.away))))
+  }, [fixture, players])
+
+  // Campeón: primer lugar entre jugadores activos
+  const champion = useMemo(() => {
+    if (!isFinished) return null
+    const active = standings.filter(s => !DISABLED_PLAYERS.includes(s.name))
+    return active[0] ?? null
+  }, [isFinished, standings])
+
   const handleTab = (key) => {
     const params = new URLSearchParams(searchParams)
     if (key === 'standings') {
@@ -56,6 +72,9 @@ export default function TorneoApp() {
 
   return (
     <div className="app">
+      {champion && (
+        <Champion champion={champion} standings={standings.filter(s => !DISABLED_PLAYERS.includes(s.name))} />
+      )}
       <header className="header">
         <h1>Torneo Los Verduras Apertura 2026</h1>
         <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
