@@ -649,12 +649,12 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
         )}
       </span>
 
-      {/* Penalty inputs — appear only for SF/Final draws */}
-      {needsPenalty && !isTBD && (
+      {/* Penalty inputs — appear only for SF/Final draws on non-TBD matches */}
+      {needsPenalty && !isTBD && match.home !== 'TBD' && match.away !== 'TBD' && (
         <div className="admin-penalty-selector">
           <span className="admin-penalty-label">🎯 Penales (marcador):</span>
           <div className="admin-penalty-score-row">
-            <span className="admin-penalty-player-label">{match.home}</span>
+            <span className="admin-penalty-player-label">{match.home !== 'TBD' ? match.home : '–'}</span>
             <input
               type="number" min="0" max="99"
               value={homePen}
@@ -682,7 +682,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
               className="admin-score-input"
               placeholder="–"
             />
-            <span className="admin-penalty-player-label">{match.away}</span>
+            <span className="admin-penalty-player-label">{match.away !== 'TBD' ? match.away : '–'}</span>
           </div>
           {penaltyWinner && (
             <span className="admin-penalty-winner-note">✓ Gana <strong>{penaltyWinner}</strong></span>
@@ -694,7 +694,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
       )}
 
       {/* Already played with penalties */}
-      {match.played && match.penaltyWinner && (
+      {match.played && match.penaltyWinner && match.home !== 'TBD' && match.away !== 'TBD' && (
         <p className="admin-copa-penalty-note">
           🎯 Penales: {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} · Gana <strong>{match.penaltyWinner}</strong>
         </p>
