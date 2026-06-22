@@ -218,9 +218,9 @@
           "id": "v2-0",
           "home": "Nacho",
           "away": "Max",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 0,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v2-1",
@@ -255,9 +255,9 @@
           "id": "v3-1",
           "home": "Gayco",
           "away": "Nacho",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 2,
+          "awayGoals": 1,
+          "played": true
         },
         {
           "id": "v3-2",
@@ -292,9 +292,9 @@
           "id": "v4-2",
           "home": "Kevin",
           "away": "Nacho",
-          "homeGoals": null,
-          "awayGoals": null,
-          "played": false
+          "homeGoals": 1,
+          "awayGoals": 2,
+          "played": true
         }
       ]
     }
