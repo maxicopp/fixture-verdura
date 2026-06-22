@@ -87,9 +87,11 @@ export function generateCopaBracket(standings) {
 }
 
 /**
- * Dado el estado actual de los partidos de copa, resuelve los TBD
- * propagando ganadores a la siguiente ronda.
- * seedMap (opcional): { playerName: seedPosition } para resolver empates.
+ * Resuelve el bracket propagando ganadores.
+ * Reglas:
+ *   - Cuartos (QF): empate → clasifica el mejor posicionado en la liga (seed más bajo)
+ *   - Semis y Final: partido definitivo, siempre hay ganador (alargue/penales)
+ *                    un empate aquí no debería ocurrir (bloqueado en la API)
  */
 export function resolveCopaBracket(matches, seedMap = {}) {
   const matchMap = {}
@@ -97,55 +99,43 @@ export function resolveCopaBracket(matches, seedMap = {}) {
     matchMap[m.id] = m
   }
 
-  function getWinner(m) {
+  function getWinner(m, isQF = false) {
     if (!m || !m.played) return null
     if (m.homeGoals > m.awayGoals) return m.home
     if (m.awayGoals > m.homeGoals) return m.away
-    // Empate: clasifica el mejor posicionado (seed más bajo)
-    const homeSeed = seedMap[m.home] ?? 99
-    const awaySeed = seedMap[m.away] ?? 99
-    return homeSeed <= awaySeed ? m.home : m.away
+    // Solo cuartos resuelven empate por seed
+    if (isQF) {
+      const hs = seedMap[m.home] ?? 99
+      const as = seedMap[m.away] ?? 99
+      return hs <= as ? m.home : m.away
+    }
+    return null // SF/Final empate no debería llegar aquí
   }
 
-  // Propagar ganador de QF1 a SF1
   const qf1 = matchMap['qf1']
-  const sf1 = matchMap['sf1']
-  if (qf1 && qf1.played && sf1) {
-    sf1.away = getWinner(qf1)
-  }
-
-  // Propagar ganador de QF2 a SF2
   const qf2 = matchMap['qf2']
+  const sf1 = matchMap['sf1']
   const sf2 = matchMap['sf2']
-  if (qf2 && qf2.played && sf2) {
-    sf2.away = getWinner(qf2)
-  }
-
-  // Propagar ganadores de semis a final
   const final_ = matchMap['final']
-  if (sf1 && sf1.played && final_) {
-    final_.home = getWinner(sf1)
-  }
-  if (sf2 && sf2.played && final_) {
-    final_.away = getWinner(sf2)
-  }
+
+  if (qf1?.played && sf1) sf1.away   = getWinner(qf1, true)
+  if (qf2?.played && sf2) sf2.away   = getWinner(qf2, true)
+  if (sf1?.played && final_) final_.home = getWinner(sf1, false)
+  if (sf2?.played && final_) final_.away = getWinner(sf2, false)
 
   return matches
 }
 
 /**
- * Obtener el campeón de la copa (ganador de la final)
- * seedMap (opcional) para resolver empate en la final.
+ * Obtener el campeón de la copa (ganador de la final).
+ * La final siempre tiene un ganador claro (no hay empate).
  */
-export function getCopaChampion(matches, seedMap = {}) {
+export function getCopaChampion(matches) {
   const final_ = matches.find(m => m.id === 'final' || m.stage === 'final')
   if (!final_ || !final_.played) return null
   if (final_.homeGoals > final_.awayGoals) return final_.home
   if (final_.awayGoals > final_.homeGoals) return final_.away
-  // Empate en la final: clasifica el mejor posicionado
-  const homeSeed = seedMap[final_.home] ?? 99
-  const awaySeed = seedMap[final_.away] ?? 99
-  return homeSeed <= awaySeed ? final_.home : final_.away
+  return null // no debería ocurrir
 }
 
 export function generateFixture(players) {

@@ -81,4 +81,7 @@ export async function initSchema() {
   try { await db.execute("ALTER TABLE tournaments ADD COLUMN type TEXT NOT NULL DEFAULT 'league' CHECK(type IN ('league', 'copa'))") } catch (e) { /* ya existe */ }
   try { await db.execute("ALTER TABLE tournament_players ADD COLUMN seed_position INTEGER DEFAULT 0") } catch (e) { /* ya existe */ }
   try { await db.execute("ALTER TABLE matches ADD COLUMN stage TEXT DEFAULT NULL") } catch (e) { /* ya existe */ }
+  try { await db.execute("ALTER TABLE matches ADD COLUMN penalty_winner TEXT DEFAULT NULL") } catch (e) { /* ya existe */ }
+  try { await db.execute("ALTER TABLE matches ADD COLUMN home_penalties INTEGER DEFAULT NULL") } catch (e) { /* ya existe */ }
+  try { await db.execute("ALTER TABLE matches ADD COLUMN away_penalties INTEGER DEFAULT NULL") } catch (e) { /* ya existe */ }
 }

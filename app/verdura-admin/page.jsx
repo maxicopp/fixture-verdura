@@ -251,7 +251,7 @@ function AdminPanel({ onLogout }) {
     }
   }
 
-  const handleCopaResult = async (matchKey, homeGoals, awayGoals) => {
+  const handleCopaResult = async (matchKey, homeGoals, awayGoals, penaltyWinner = null, homePenalties = null, awayPenalties = null) => {
     try {
       const res = await fetch('/api/copa/save-result', {
         method: 'POST',
@@ -260,6 +260,9 @@ function AdminPanel({ onLogout }) {
           match_key: matchKey,
           home_goals: homeGoals,
           away_goals: awayGoals,
+          penalty_winner: penaltyWinner,
+          home_penalties: homePenalties,
+          away_penalties: awayPenalties,
           tournament_id: copaData?.tournament?.id,
         }),
       })
@@ -550,7 +553,7 @@ function AdminCopa({ copaData, copaLoading, standings, onCreateCopa, onResult, o
               <AdminCopaMatchCard
                 key={match.id}
                 match={match}
-                onSave={(hg, ag) => onResult(match.id, hg, ag)}
+                onSave={(hg, ag, pw, hp, ap) => onResult(match.id, hg, ag, pw, hp, ap)}
                 onReset={() => onReset(match.id)}
               />
             ))}
@@ -564,19 +567,42 @@ function AdminCopa({ copaData, copaLoading, standings, onCreateCopa, onResult, o
 function AdminCopaMatchCard({ match, onSave, onReset }) {
   const [homeGoals, setHomeGoals] = useState(match.played ? match.homeGoals : '')
   const [awayGoals, setAwayGoals] = useState(match.played ? match.awayGoals : '')
+  const [penaltyWinner, setPenaltyWinner] = useState(match.penaltyWinner ?? null)
+  const [homePen, setHomePen]     = useState(match.homePenalties ?? '')
+  const [awayPen, setAwayPen]     = useState(match.awayPenalties ?? '')
 
   useEffect(() => {
     setHomeGoals(match.played ? match.homeGoals : '')
     setAwayGoals(match.played ? match.awayGoals : '')
-  }, [match.played, match.homeGoals, match.awayGoals])
+    setPenaltyWinner(match.penaltyWinner ?? null)
+    setHomePen(match.homePenalties ?? '')
+    setAwayPen(match.awayPenalties ?? '')
+  }, [match.played, match.homeGoals, match.awayGoals, match.penaltyWinner, match.homePenalties, match.awayPenalties])
 
-  const isTBD = match.home === 'TBD' || match.away === 'TBD'
+  const isTBD  = match.home === 'TBD' || match.away === 'TBD'
+  const isQF   = match.id?.startsWith('qf')
+  const isDraw = homeGoals !== '' && awayGoals !== '' && Number(homeGoals) === Number(awayGoals)
+  const needsPenalty = !isQF && isDraw
+
+  const penaltiesValid = !needsPenalty || (
+    penaltyWinner &&
+    homePen !== '' && awayPen !== '' &&
+    Number(homePen) >= 0 && Number(awayPen) >= 0 &&
+    Number(homePen) !== Number(awayPen) &&
+    (Number(homePen) > Number(awayPen) ? match.home : match.away) === penaltyWinner
+  )
+
   const canSave = !isTBD && homeGoals !== '' && awayGoals !== '' &&
-    Number(homeGoals) >= 0 && Number(awayGoals) >= 0
+    Number(homeGoals) >= 0 && Number(awayGoals) >= 0 && penaltiesValid
 
   const handleSave = () => {
     if (!canSave) return
-    onSave(Number(homeGoals), Number(awayGoals))
+    onSave(
+      Number(homeGoals), Number(awayGoals),
+      needsPenalty ? penaltyWinner : null,
+      needsPenalty ? Number(homePen) : null,
+      needsPenalty ? Number(awayPen) : null,
+    )
   }
 
   return (
@@ -596,7 +622,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
         <input
           type="number" min="0" max="99"
           value={homeGoals}
-          onChange={e => setHomeGoals(e.target.value)}
+          onChange={e => { setHomeGoals(e.target.value); setPenaltyWinner(null); setHomePen(''); setAwayPen('') }}
           className="admin-score-input"
           placeholder="–"
           disabled={isTBD}
@@ -605,7 +631,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
         <input
           type="number" min="0" max="99"
           value={awayGoals}
-          onChange={e => setAwayGoals(e.target.value)}
+          onChange={e => { setAwayGoals(e.target.value); setPenaltyWinner(null); setHomePen(''); setAwayPen('') }}
           className="admin-score-input"
           placeholder="–"
           disabled={isTBD}
@@ -623,6 +649,62 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
         )}
       </span>
 
+      {/* Penalty inputs — appear only for SF/Final draws */}
+      {needsPenalty && !isTBD && (
+        <div className="admin-penalty-selector">
+          <span className="admin-penalty-label">🎯 Penales (marcador):</span>
+          <div className="admin-penalty-score-row">
+            <span className="admin-penalty-player-label">{match.home}</span>
+            <input
+              type="number" min="0" max="99"
+              value={homePen}
+              onChange={e => {
+                const v = e.target.value
+                setHomePen(v)
+                if (v !== '' && awayPen !== '') {
+                  setPenaltyWinner(Number(v) > Number(awayPen) ? match.home : Number(awayPen) > Number(v) ? match.away : null)
+                }
+              }}
+              className="admin-score-input"
+              placeholder="–"
+            />
+            <span className="admin-score-sep">-</span>
+            <input
+              type="number" min="0" max="99"
+              value={awayPen}
+              onChange={e => {
+                const v = e.target.value
+                setAwayPen(v)
+                if (homePen !== '' && v !== '') {
+                  setPenaltyWinner(Number(v) > Number(homePen) ? match.away : Number(homePen) > Number(v) ? match.home : null)
+                }
+              }}
+              className="admin-score-input"
+              placeholder="–"
+            />
+            <span className="admin-penalty-player-label">{match.away}</span>
+          </div>
+          {penaltyWinner && (
+            <span className="admin-penalty-winner-note">✓ Gana <strong>{penaltyWinner}</strong></span>
+          )}
+          {homePen !== '' && awayPen !== '' && Number(homePen) === Number(awayPen) && (
+            <span className="admin-penalty-winner-note" style={{ color: 'var(--danger)' }}>Los penales no pueden empatar</span>
+          )}
+        </div>
+      )}
+
+      {/* Already played with penalties */}
+      {match.played && match.penaltyWinner && (
+        <p className="admin-copa-penalty-note">
+          🎯 Penales: {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} · Gana <strong>{match.penaltyWinner}</strong>
+        </p>
+      )}
+
+      {/* QF draw note */}
+      {isQF && isDraw && (
+        <p className="admin-copa-no-draw">⚖️ Empate: clasifica el mejor ubicado en la tabla de la liga</p>
+      )}
+
       <div className="admin-match-actions">
         <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
           Guardar
@@ -633,10 +715,6 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
           </button>
         )}
       </div>
-
-      {!isTBD && homeGoals !== '' && awayGoals !== '' && Number(homeGoals) === Number(awayGoals) && (
-        <p className="admin-copa-no-draw">⚖️ Empate: clasifica el mejor ubicado en la tabla de la liga</p>
-      )}
     </div>
   )
 }

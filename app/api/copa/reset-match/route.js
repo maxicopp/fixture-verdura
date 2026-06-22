@@ -27,23 +27,21 @@ export async function POST(request) {
 
   // Resetear el partido
   await dbRun(
-    'UPDATE matches SET home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = ?',
+    'UPDATE matches SET home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = ?',
     [tid, match_key]
   )
 
   // Resetear partidos dependientes y propagaciones
   if (match_key === 'qf1') {
-    // Resetear SF1 away a TBD, y resetear SF1 si ya se jugó
-    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'sf1'", [tid])
-    // Resetear final home a TBD
-    await dbRun("UPDATE matches SET home = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'final'", [tid])
+    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'sf1'", [tid])
+    await dbRun("UPDATE matches SET home = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'final'", [tid])
   } else if (match_key === 'qf2') {
-    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'sf2'", [tid])
-    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'final'", [tid])
+    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'sf2'", [tid])
+    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'final'", [tid])
   } else if (match_key === 'sf1') {
-    await dbRun("UPDATE matches SET home = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'final'", [tid])
+    await dbRun("UPDATE matches SET home = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'final'", [tid])
   } else if (match_key === 'sf2') {
-    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = 'final'", [tid])
+    await dbRun("UPDATE matches SET away = 'TBD', home_goals = NULL, away_goals = NULL, played = 0, penalty_winner = NULL WHERE tournament_id = ? AND match_key = 'final'", [tid])
   }
 
   // Si el torneo estaba finalizado, reactivarlo

@@ -24,31 +24,58 @@ function getWinner(match, seedMap) {
 }
 
 // ─── One matchup card ────────────────────────────────────────────────────────
-function MatchCard({ match, seedMap, isFinal = false }) {
+// isQF: empate clasifica por tabla. isSF/isFinal: partido definitivo.
+function MatchCard({ match, seedMap, isFinal = false, isSF = false, isQF = false }) {
   if (!match) return <div className="bracket-card bracket-card-tbd"><PlaceholderSlot /><div className="bracket-card-divider" /><PlaceholderSlot /></div>
 
-  const winner  = getWinner(match, seedMap)
-  const isDraw  = match.played && match.homeGoals === match.awayGoals
+  const isDraw = match.played && match.homeGoals === match.awayGoals
+
+  // Winner resolution: QF uses seed tie-break, SF/Final must have a clear winner
+  let winner = null
+  if (match.played) {
+    if (match.homeGoals > match.awayGoals) winner = match.home
+    else if (match.awayGoals > match.homeGoals) winner = match.away
+    else if (isQF) {
+      const hs = seedMap[match.home] ?? 99
+      const as = seedMap[match.away] ?? 99
+      winner = hs <= as ? match.home : match.away
+    }
+  }
 
   return (
     <div className={`bracket-card ${match.played ? 'bracket-card-done' : 'bracket-card-pending'} ${isFinal ? 'bracket-card-highlight' : ''}`}>
       <PlayerSlot
         name={match.home}
         goals={match.played ? match.homeGoals : null}
-        isWinner={match.played && winner === match.home}
-        isLoser={match.played && winner !== match.home}
+        isWinner={!!winner && winner === match.home}
+        isLoser={match.played && !!winner && winner !== match.home}
         seed={seedMap[match.home]}
       />
       <div className="bracket-card-divider" />
       <PlayerSlot
         name={match.away}
         goals={match.played ? match.awayGoals : null}
-        isWinner={match.played && winner === match.away}
-        isLoser={match.played && winner !== match.away}
+        isWinner={!!winner && winner === match.away}
+        isLoser={match.played && !!winner && winner !== match.away}
         seed={seedMap[match.away]}
       />
-      {isDraw && (
+      {/* Rule note under pending cards */}
+      {!match.played && match.home !== 'TBD' && match.away !== 'TBD' && (
+        <div className="bracket-card-rule-note">
+          {isQF
+            ? '⚖️ Empate clasifica por tabla'
+            : '⏱ Alargue · Penales si necesario'}
+        </div>
+      )}
+      {/* Draw indicator for QF */}
+      {isDraw && isQF && (
         <div className="bracket-card-draw-note">⚖️ Empate · clasifica por tabla</div>
+      )}
+      {/* Penalty winner for SF/Final */}
+      {match.played && !isQF && match.penaltyWinner && (
+        <div className="bracket-card-draw-note">
+          🎯 {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} pen · <strong>{match.penaltyWinner}</strong> avanza
+        </div>
       )}
     </div>
   )
@@ -285,10 +312,10 @@ export default function CopaBracket() {
           {/* ── Col A: QF ── */}
           <div className="bracket-col-left">
             <div className="bracket-cell-top">
-              <MatchCard match={byId['qf1']} seedMap={seedMap} />
+              <MatchCard match={byId['qf1']} seedMap={seedMap} isQF />
             </div>
             <div className="bracket-cell-bot">
-              <MatchCard match={byId['qf2']} seedMap={seedMap} />
+              <MatchCard match={byId['qf2']} seedMap={seedMap} isQF />
             </div>
           </div>
 
@@ -297,7 +324,7 @@ export default function CopaBracket() {
 
           {/* ── Col B: SF left ── */}
           <div className="bracket-col-mid">
-            <MatchCard match={byId['sf1']} seedMap={seedMap} />
+            <MatchCard match={byId['sf1']} seedMap={seedMap} isSF />
           </div>
 
           {/* ── Conn B→C ── */}
@@ -313,7 +340,7 @@ export default function CopaBracket() {
 
           {/* ── Col D: SF right ── */}
           <div className="bracket-col-mid">
-            <MatchCard match={byId['sf2']} seedMap={seedMap} />
+            <MatchCard match={byId['sf2']} seedMap={seedMap} isSF />
           </div>
 
           {/* ── Conn D←E ── */}
@@ -343,7 +370,7 @@ export default function CopaBracket() {
           </div>
         ))}
       </div>
-      <p className="bracket-tiebreak-note">⚖️ En caso de empate clasifica el mejor posicionado en la liga</p>
+      <p className="bracket-tiebreak-note">⚖️ Cuartos: empate clasifica por tabla · Semis y Final: alargue y penales</p>
 
       {/* ── Champion ── */}
       {isFinished && champion && (

@@ -449,13 +449,19 @@ function TournamentDetail({ data }) {
                   {round.matches.map(m => {
                     const homeWin = m.played && m.homeGoals > m.awayGoals
                     const awayWin = m.played && m.awayGoals > m.homeGoals
+                    const hasPenalties = m.played && m.penaltyWinner
                     return (
                       <div key={m.id} className={`hist-detail-match ${!m.played ? 'hist-detail-match-pending' : ''}`}>
-                        <span className={`hist-match-team ${homeWin ? 'hist-match-winner' : ''}`}>{m.home}</span>
+                        <span className={`hist-match-team ${(homeWin || (hasPenalties && m.penaltyWinner === m.home)) ? 'hist-match-winner' : ''}`}>{m.home}</span>
                         <span className="hist-match-score">
-                          {m.played ? `${m.homeGoals} - ${m.awayGoals}` : 'vs'}
+                          {m.played
+                            ? hasPenalties
+                              ? `${m.homeGoals}-${m.awayGoals} (${m.homePenalties ?? '?'}-${m.awayPenalties ?? '?'} pen)`
+                              : `${m.homeGoals} - ${m.awayGoals}`
+                            : 'vs'
+                          }
                         </span>
-                        <span className={`hist-match-team ${awayWin ? 'hist-match-winner' : ''}`}>{m.away}</span>
+                        <span className={`hist-match-team ${(awayWin || (hasPenalties && m.penaltyWinner === m.away)) ? 'hist-match-winner' : ''}`}>{m.away}</span>
                       </div>
                     )
                   })}

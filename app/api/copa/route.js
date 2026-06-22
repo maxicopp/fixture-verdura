@@ -25,7 +25,7 @@ export async function GET() {
   )
 
   const matchRows = await dbAll(
-    'SELECT match_key, round, stage, home, away, home_goals, away_goals, played FROM matches WHERE tournament_id = ? ORDER BY round, id',
+    'SELECT match_key, round, stage, home, away, home_goals, away_goals, played, penalty_winner, home_penalties, away_penalties FROM matches WHERE tournament_id = ? ORDER BY round, id',
     [tournament.id]
   )
 
@@ -39,6 +39,9 @@ export async function GET() {
     homeGoals: m.home_goals,
     awayGoals: m.away_goals,
     played: !!m.played,
+    penaltyWinner: m.penalty_winner ?? null,
+    homePenalties: m.home_penalties ?? null,
+    awayPenalties: m.away_penalties ?? null,
   }))
 
   // Crear seedMap para resolver empates

@@ -9,15 +9,24 @@ async function isAuthed() {
   return !!cookieStore.get(SESSION_TOKEN)?.value
 }
 
-/**
- * En caso de empate, clasifica el que mejor estaba en la tabla de la liga
- * (el que tiene seed_position más bajo).
- */
-async function resolveWinner(home, away, homeGoals, awayGoals, tid) {
-  if (homeGoals > awayGoals) return home
-  if (awayGoals > homeGoals) return away
+// Cuartos: empate clasifica por seed de liga
+// Semis y Final: partido definitivo — empate requiere penalty_winner
+async function resolveWinner(matchKey, home, away, homeGoals, awayGoals, penaltyWinner, tid) {
+  if (homeGoals > awayGoals) return { winner: home, isDraw: false }
+  if (awayGoals > homeGoals) return { winner: away, isDraw: false }
 
-  // Empate — gana el que tiene mejor seed (número más bajo)
+  // Empate
+  const isQF = matchKey.startsWith('qf')
+
+  if (!isQF) {
+    // SF o Final: necesita penalty_winner
+    if (!penaltyWinner || (penaltyWinner !== home && penaltyWinner !== away)) {
+      return { winner: null, isDraw: true, error: 'En caso de empate en Semis o Final, indicá el ganador por penales.' }
+    }
+    return { winner: penaltyWinner, isDraw: true }
+  }
+
+  // Cuartos: clasifica el mejor posicionado en la liga
   const homeSeed = await dbGet(
     'SELECT seed_position FROM tournament_players WHERE tournament_id = ? AND name = ?',
     [tid, home]
@@ -28,7 +37,7 @@ async function resolveWinner(home, away, homeGoals, awayGoals, tid) {
   )
   const hs = homeSeed?.seed_position ?? 99
   const as = awaySeed?.seed_position ?? 99
-  return hs <= as ? home : away
+  return { winner: hs <= as ? home : away, isDraw: true }
 }
 
 // POST /api/copa/save-result
@@ -39,7 +48,7 @@ export async function POST(request) {
 
   await initSchema()
   const body = await request.json()
-  const { match_key, home_goals, away_goals, tournament_id } = body
+  const { match_key, home_goals, away_goals, penalty_winner, home_penalties, away_penalties, tournament_id } = body
 
   if (match_key == null || home_goals == null || away_goals == null) {
     return Response.json({ error: 'Faltan campos' }, { status: 400 })
@@ -53,7 +62,6 @@ export async function POST(request) {
     tid = active.id
   }
 
-  // Verificar que el partido puede jugarse (no tiene dependencias sin resolver)
   const match = await dbGet(
     'SELECT * FROM matches WHERE tournament_id = ? AND match_key = ?',
     [tid, match_key]
@@ -66,36 +74,37 @@ export async function POST(request) {
     return Response.json({ error: 'Este partido depende de resultados anteriores' }, { status: 400 })
   }
 
-  // Guardar resultado
+  // Resolver ganador según la etapa
+  const resolution = await resolveWinner(match_key, match.home, match.away, home_goals, away_goals, penalty_winner ?? null, tid)
+
+  if (resolution.error) {
+    return Response.json({ error: resolution.error }, { status: 400 })
+  }
+
+  const { winner, isDraw } = resolution
+
+  // Guardar resultado (incluyendo penalty_winner y marcador de penales si aplica)
+  const isPenaltyMatch = resolution.isDraw && !match_key.startsWith('qf')
   await dbRun(
-    'UPDATE matches SET home_goals = ?, away_goals = ?, played = 1 WHERE tournament_id = ? AND match_key = ?',
-    [home_goals, away_goals, tid, match_key]
+    'UPDATE matches SET home_goals = ?, away_goals = ?, played = 1, penalty_winner = ?, home_penalties = ?, away_penalties = ? WHERE tournament_id = ? AND match_key = ?',
+    [
+      home_goals, away_goals,
+      isPenaltyMatch ? winner : null,
+      isPenaltyMatch ? (home_penalties ?? null) : null,
+      isPenaltyMatch ? (away_penalties ?? null) : null,
+      tid, match_key,
+    ]
   )
 
-  // Determinar ganador (en empate, clasifica el mejor posicionado en la liga)
-  const winner = await resolveWinner(match.home, match.away, home_goals, away_goals, tid)
-  const isDraw = home_goals === away_goals
-
+  // Propagar ganador a la siguiente ronda
   if (match_key === 'qf1') {
-    await dbRun(
-      "UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'sf1'",
-      [winner, tid]
-    )
+    await dbRun("UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'sf1'", [winner, tid])
   } else if (match_key === 'qf2') {
-    await dbRun(
-      "UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'sf2'",
-      [winner, tid]
-    )
+    await dbRun("UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'sf2'", [winner, tid])
   } else if (match_key === 'sf1') {
-    await dbRun(
-      "UPDATE matches SET home = ? WHERE tournament_id = ? AND match_key = 'final'",
-      [winner, tid]
-    )
+    await dbRun("UPDATE matches SET home = ? WHERE tournament_id = ? AND match_key = 'final'", [winner, tid])
   } else if (match_key === 'sf2') {
-    await dbRun(
-      "UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'final'",
-      [winner, tid]
-    )
+    await dbRun("UPDATE matches SET away = ? WHERE tournament_id = ? AND match_key = 'final'", [winner, tid])
   }
 
   // Chequear si la copa terminó (final jugada)

@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
   )
 
   const matchRows = await dbAll(
-    'SELECT match_key, round, home, away, home_goals, away_goals, played FROM matches WHERE tournament_id = ? ORDER BY round, id', [id]
+    'SELECT match_key, round, stage, home, away, home_goals, away_goals, played, penalty_winner, home_penalties, away_penalties FROM matches WHERE tournament_id = ? ORDER BY round, id', [id]
   )
 
   const roundsMap = {}
@@ -25,6 +25,10 @@ export async function GET(request, { params }) {
     roundsMap[m.round].matches.push({
       id: m.match_key, home: m.home, away: m.away,
       homeGoals: m.home_goals, awayGoals: m.away_goals, played: !!m.played,
+      stage: m.stage ?? null,
+      penaltyWinner: m.penalty_winner ?? null,
+      homePenalties: m.home_penalties ?? null,
+      awayPenalties: m.away_penalties ?? null,
     })
   }
   const fixture = Object.values(roundsMap).sort((a, b) => a.round - b.round)
