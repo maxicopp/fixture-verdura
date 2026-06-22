@@ -41,7 +41,7 @@ export default function Champion({ champion, standings }) {
           <span className="champion-trophy-icon">🏆</span>
         </div>
 
-        <h2 className="champion-title">Torneo Los Verduras<br />Apertura 2026</h2>
+        <h2 className="champion-title">Torneo Los Verduras<br />Clausura 2026</h2>
 
         {/* Avatar del campeón */}
         <div className="champion-avatar-wrap">

@@ -234,7 +234,7 @@ function AdminPanel({ onLogout }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Copa Los Verduras',
-          season: 'Apertura 2026',
+          season: 'Clausura 2026',
           year: 2026,
           standings: standings,
         }),
@@ -321,7 +321,7 @@ function AdminPanel({ onLogout }) {
       </div>
 
       <header className="admin-header-section">
-        <h1>Apertura 2026</h1>
+        <h1>Clausura 2026</h1>
         <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />

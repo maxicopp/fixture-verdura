@@ -196,7 +196,7 @@ export default function TorneoApp() {
 
       <header className="header">
         <h1>Torneo Los Verduras</h1>
-        <p className="subtitle">Apertura 2026 · {players.length} jugadores · {totalMatches} partidos</p>
+        <p className="subtitle">Clausura 2026 · {players.length} jugadores · {totalMatches} partidos</p>
         {activeSection.key === 'current' && (
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${progress}%` }} />

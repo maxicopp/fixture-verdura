@@ -302,7 +302,7 @@ export default function HistoricalStats() {
         </h3>
         <p className="hist-section-desc">Hacé click en un torneo para ver su detalle completo</p>
         <div className="hist-tournaments-list">
-          {tournaments.map(t => (
+          {tournaments.filter(t => t.type !== 'copa').map(t => (
             <div key={t.id} className="hist-tournament-wrapper">
               <button
                 className={`hist-tournament-card ${selectedTournament === t.id ? 'hist-tournament-selected' : ''}`}
@@ -352,21 +352,30 @@ export default function HistoricalStats() {
 function TournamentDetail({ data }) {
   const { tournament, standings, fixture } = data
 
+  // Copa tournaments have their own dedicated tab — skip detail here
+  if (tournament.type === 'copa') {
+    return (
+      <div className="hist-detail-empty">
+        🏆 Este torneo es una Copa — mirá la sección Copa para el bracket.
+      </div>
+    )
+  }
+
   if (!standings || standings.length === 0) {
     return <div className="hist-detail-empty">Sin datos de partidos para este torneo.</div>
   }
 
-  const totalGoals = fixture.reduce((acc, r) =>
+  const playedMatches = fixture.reduce((acc, r) => acc + r.matches.filter(m => m.played).length, 0)
+  const totalGoals    = fixture.reduce((acc, r) =>
     acc + r.matches.filter(m => m.played).reduce((a, m) => a + m.homeGoals + m.awayGoals, 0), 0
   )
-  const totalMatches = fixture.reduce((acc, r) => acc + r.matches.filter(m => m.played).length, 0)
 
   return (
     <div className="hist-detail">
       {/* KPIs del torneo */}
       <div className="hist-detail-kpis">
         <div className="hist-detail-kpi">
-          <span className="hist-detail-kpi-val">{totalMatches}</span>
+          <span className="hist-detail-kpi-val">{playedMatches}</span>
           <span className="hist-detail-kpi-label">Partidos</span>
         </div>
         <div className="hist-detail-kpi">
@@ -374,13 +383,13 @@ function TournamentDetail({ data }) {
           <span className="hist-detail-kpi-label">Goles</span>
         </div>
         <div className="hist-detail-kpi">
-          <span className="hist-detail-kpi-val">{totalMatches > 0 ? (totalGoals / totalMatches).toFixed(1) : '0'}</span>
-          <span className="hist-detail-kpi-label">Goles/partido</span>
+          <span className="hist-detail-kpi-val">{playedMatches > 0 ? (totalGoals / playedMatches).toFixed(1) : '—'}</span>
+          <span className="hist-detail-kpi-label">Goles/PJ</span>
         </div>
         {tournament.top_scorer && (
           <div className="hist-detail-kpi">
-            <span className="hist-detail-kpi-val">⚽ {tournament.top_scorer}</span>
-            <span className="hist-detail-kpi-label">Goleador ({tournament.top_scorer_goals})</span>
+            <span className="hist-detail-kpi-val">{tournament.top_scorer}</span>
+            <span className="hist-detail-kpi-label">⚽ {tournament.top_scorer_goals} goles</span>
           </div>
         )}
       </div>
@@ -409,11 +418,7 @@ function TournamentDetail({ data }) {
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                 </td>
                 <td className="player-name">
-                  <img
-                    src={`/players/${s.name.toLowerCase()}.png`}
-                    alt={s.name}
-                    className="avatar"
-                  />
+                  <img src={`/players/${s.name.toLowerCase()}.png`} alt={s.name} className="avatar" />
                   <span>{s.name}</span>
                 </td>
                 <td>{s.pj}</td>
@@ -432,30 +437,34 @@ function TournamentDetail({ data }) {
         </table>
       </div>
 
-      {/* Fixture resumido */}
-      <div className="hist-detail-fixture">
-        <h4 className="hist-detail-subtitle">📋 Fixture</h4>
-        <div className="hist-detail-rounds">
-          {fixture.map((round) => (
-            <div key={round.round} className="hist-detail-round">
-              <span className="hist-detail-round-label">Fecha {round.round}</span>
-              <div className="hist-detail-matches">
-                {round.matches.filter(m => m.played).map(m => {
-                  const homeWin = m.homeGoals > m.awayGoals
-                  const awayWin = m.awayGoals > m.homeGoals
-                  return (
-                    <div key={m.id} className="hist-detail-match">
-                      <span className={`hist-match-team ${homeWin ? 'hist-match-winner' : ''}`}>{m.home}</span>
-                      <span className="hist-match-score">{m.homeGoals} - {m.awayGoals}</span>
-                      <span className={`hist-match-team ${awayWin ? 'hist-match-winner' : ''}`}>{m.away}</span>
-                    </div>
-                  )
-                })}
+      {/* Fixture — all rounds, all matches */}
+      {fixture.length > 0 && (
+        <div className="hist-detail-fixture">
+          <h4 className="hist-detail-subtitle">📋 Fixture</h4>
+          <div className="hist-detail-rounds">
+            {fixture.map((round) => (
+              <div key={round.round} className="hist-detail-round">
+                <span className="hist-detail-round-label">Fecha {round.round}</span>
+                <div className="hist-detail-matches">
+                  {round.matches.map(m => {
+                    const homeWin = m.played && m.homeGoals > m.awayGoals
+                    const awayWin = m.played && m.awayGoals > m.homeGoals
+                    return (
+                      <div key={m.id} className={`hist-detail-match ${!m.played ? 'hist-detail-match-pending' : ''}`}>
+                        <span className={`hist-match-team ${homeWin ? 'hist-match-winner' : ''}`}>{m.home}</span>
+                        <span className="hist-match-score">
+                          {m.played ? `${m.homeGoals} - ${m.awayGoals}` : 'vs'}
+                        </span>
+                        <span className={`hist-match-team ${awayWin ? 'hist-match-winner' : ''}`}>{m.away}</span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

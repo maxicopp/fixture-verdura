@@ -25,7 +25,7 @@ async function seed() {
   // Insertar torneo
   const result = await dbRun(
     "INSERT INTO tournaments (name, season, year, status) VALUES (?, ?, ?, 'active')",
-    ['Torneo Los Verduras', 'Apertura 2026', 2026]
+    ['Torneo Los Verduras', 'Clausura 2026', 2026]
   )
   const tid = Number(result.lastInsertRowid)
 
@@ -44,7 +44,7 @@ async function seed() {
     }
   }
 
-  console.log('✅ Torneo actual (Apertura 2026) insertado.')
+  console.log('✅ Torneo actual (Clausura 2026) insertado.')
   console.log('🎉 Seed completo.')
 }
 

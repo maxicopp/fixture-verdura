@@ -151,7 +151,9 @@ export function getCopaChampion(matches, seedMap = {}) {
 export function generateFixture(players) {
   const n = players.length
   const rounds = []
-  const list = [...players]
+
+  // Shuffle players for a random draw each tournament
+  const list = [...players].sort(() => Math.random() - 0.5)
 
   // Ronda de ida
   for (let round = 0; round < n - 1; round++) {
