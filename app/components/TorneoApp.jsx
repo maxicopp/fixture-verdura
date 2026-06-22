@@ -66,6 +66,7 @@ export default function TorneoApp() {
   const [players, setPlayers]               = useState([])
   const [fixture, setFixture]               = useState([])
   const [disabledPlayers, setDisabledPlayers] = useState([])
+  const [histStats, setHistStats]           = useState({})
   const [loading, setLoading]               = useState(true)
 
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function TorneoApp() {
         setPlayers(data.players)
         setFixture(data.fixture)
         setDisabledPlayers(data.disabledPlayers || [])
+        setHistStats(data.histStats || {})
       })
       .catch(() => {
         fetch('/data.json').then(r => r.json()).then(fallback => {
@@ -242,7 +244,7 @@ export default function TorneoApp() {
           <Standings standings={standings} disabledPlayers={disabledPlayers} />
         )}
         {activeSection.key === 'current' && activeTab === 'fixture' && (
-          <FixtureReadOnly fixture={fixture} disabledPlayers={disabledPlayers} />
+          <FixtureReadOnly fixture={fixture} disabledPlayers={disabledPlayers} histStats={histStats} />
         )}
         {activeSection.key === 'current' && activeTab === 'stats' && (
           <Stats fixture={fixture} standings={standings} disabledPlayers={disabledPlayers} />
@@ -270,24 +272,49 @@ export default function TorneoApp() {
   )
 }
 
-// ─── Odds ────────────────────────────────────────────────────────────────────
+// ─── Odds ─────────────────────────────────────────────────────────────────────
+// Blends ALL historical matches with current tournament form.
+// histStats: { [name]: { pj, pg, pe, pp, gf, gc } } from previous tournaments.
+// fixture:   current tournament rounds (may be sparse at start of season).
+//
+// Scoring formula per player:
+//   historical base  = (pg*3 + pe) * 1.0  (full weight, more data = more reliable)
+//   current pts      = (pg*3 + pe) * 1.5  (slight recency boost)
+//   current recent3  = last 3 results      * 2.0 (form momentum)
+//   goal diff bonus  = (gf-gc) total       * 0.5
 
-function calcOdds(homeName, awayName, fixture) {
+function calcOdds(homeName, awayName, fixture, histStats = {}) {
   function score(name) {
+    // ── Historical base ──────────────────────────────────────────────────
+    const h = histStats[name]
+    let s = 0
+    if (h && h.pj > 0) {
+      const histPts = h.pg * 3 + h.pe
+      const histDg  = h.gf - h.gc
+      s += histPts * 1.0 + histDg * 0.5
+    }
+
+    // ── Current tournament ───────────────────────────────────────────────
     const results = []
     fixture.forEach(r => r.matches.forEach(m => {
       if (!m.played) return
       if (m.home === name) results.push({ gf: m.homeGoals, gc: m.awayGoals })
       if (m.away === name) results.push({ gf: m.awayGoals, gc: m.homeGoals })
     }))
-    if (results.length === 0) return 1
-    const pts    = results.reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
-    const recent = results.slice(-3).reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
-    const dg     = results.reduce((a, r) => a + (r.gf - r.gc), 0)
-    return pts * 2 + recent * 3 + dg + 5
+
+    if (results.length > 0) {
+      const curPts  = results.reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+      const recent3 = results.slice(-3).reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+      const curDg   = results.reduce((a, r) => a + (r.gf - r.gc), 0)
+      s += curPts * 1.5 + recent3 * 2.0 + curDg * 0.5
+    }
+
+    // Minimum floor so new seasons always produce valid odds
+    return Math.max(s + 5, 0.1)
   }
-  const sh    = Math.max(score(homeName), 0.1)
-  const sa    = Math.max(score(awayName), 0.1)
+
+  const sh    = score(homeName)
+  const sa    = score(awayName)
   const total = sh + sa
   const ph    = (sh / total) * 0.9
   const pa    = (sa / total) * 0.9
@@ -300,13 +327,12 @@ function calcOdds(homeName, awayName, fixture) {
   }
 }
 
-// ─── Fixture read-only ───────────────────────────────────────────────────────
+// ─── Fixture read-only ────────────────────────────────────────────────────────
 
-function FixtureReadOnly({ fixture, disabledPlayers = [] }) {
+function FixtureReadOnly({ fixture, disabledPlayers = [], histStats = {} }) {
   const [expandedRound, setExpandedRound] = useState(0)
   const isDisabled      = (name)  => disabledPlayers.includes(name)
   const matchHasDisabled = (match) => isDisabled(match.home) || isDisabled(match.away)
-
   return (
     <div className="fixture">
       <div className="fixture-header">
@@ -331,7 +357,7 @@ function FixtureReadOnly({ fixture, disabledPlayers = [] }) {
                 {round.matches.map(match => {
                   const disabled = matchHasDisabled(match)
                   if (!match.played) {
-                    const odds = calcOdds(match.home, match.away, fixture)
+                    const odds = calcOdds(match.home, match.away, fixture, histStats)
                     return (
                       <div key={match.id} className={`match-card pending ${disabled ? 'match-disabled' : ''}`}>
                         <div className="match-teams">

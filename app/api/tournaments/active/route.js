@@ -1,8 +1,6 @@
 import { dbGet, dbAll, initSchema } from '../../../lib/db'
 
 // GET /api/tournaments/active
-// Si hay un torneo activo lo devuelve. Si no, devuelve el más reciente
-// (puede ser un torneo finalizado — así la app pública sigue mostrando el campeón)
 export async function GET() {
   await initSchema()
 
@@ -44,5 +42,28 @@ export async function GET() {
   const playerNames = players.map(p => p.name)
   const disabledPlayers = players.filter(p => p.disabled).map(p => p.name)
 
-  return Response.json({ tournament, players: playerNames, disabledPlayers, fixture })
+  // ── Historical stats for odds calculation ──────────────────────────────────
+  // All played matches across ALL past tournaments (excluding current)
+  const allHistoricalMatches = await dbAll(`
+    SELECT home, away, home_goals, away_goals
+    FROM matches
+    WHERE played = 1 AND tournament_id != ?
+    ORDER BY id ASC
+  `, [tournament.id])
+
+  // Build per-player historical stats: { name: { pj, pg, pe, pp, gf, gc } }
+  const histStats = {}
+  for (const m of allHistoricalMatches) {
+    if (!histStats[m.home]) histStats[m.home] = { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0 }
+    if (!histStats[m.away]) histStats[m.away] = { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0 }
+    const h = histStats[m.home]
+    const a = histStats[m.away]
+    h.pj++; h.gf += m.home_goals; h.gc += m.away_goals
+    a.pj++; a.gf += m.away_goals; a.gc += m.home_goals
+    if (m.home_goals > m.away_goals)      { h.pg++; a.pp++ }
+    else if (m.away_goals > m.home_goals) { a.pg++; h.pp++ }
+    else                                  { h.pe++; a.pe++ }
+  }
+
+  return Response.json({ tournament, players: playerNames, disabledPlayers, fixture, histStats })
 }

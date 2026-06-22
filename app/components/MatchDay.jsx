@@ -2,27 +2,35 @@
 
 import { useState } from 'react'
 
-function calcOdds(homeName, awayName, fixture) {
+// histStats: { [name]: { pj, pg, pe, pp, gf, gc } } from all previous tournaments.
+// Blends historical performance with current form for more accurate odds.
+function calcOdds(homeName, awayName, fixture, histStats = {}) {
   function score(name) {
+    const h = histStats[name]
+    let s = 0
+    if (h && h.pj > 0) {
+      s += (h.pg * 3 + h.pe) * 1.0 + (h.gf - h.gc) * 0.5
+    }
     const results = []
     fixture.forEach(r => r.matches.forEach(m => {
       if (!m.played) return
       if (m.home === name) results.push({ gf: m.homeGoals, gc: m.awayGoals })
       if (m.away === name) results.push({ gf: m.awayGoals, gc: m.homeGoals })
     }))
-    if (results.length === 0) return 1
-    const pts = results.reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
-    const recent = results.slice(-3).reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
-    const dg = results.reduce((a, r) => a + (r.gf - r.gc), 0)
-    return pts * 2 + recent * 3 + dg + 5
+    if (results.length > 0) {
+      const curPts  = results.reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+      const recent3 = results.slice(-3).reduce((a, r) => a + (r.gf > r.gc ? 3 : r.gf === r.gc ? 1 : 0), 0)
+      const curDg   = results.reduce((a, r) => a + (r.gf - r.gc), 0)
+      s += curPts * 1.5 + recent3 * 2.0 + curDg * 0.5
+    }
+    return Math.max(s + 5, 0.1)
   }
-  const sh = Math.max(score(homeName), 0.1)
-  const sa = Math.max(score(awayName), 0.1)
+  const sh = score(homeName)
+  const sa = score(awayName)
   const total = sh + sa
-  // probabilidades con margen de casa (~10%)
   const ph = (sh / total) * 0.9
   const pa = (sa / total) * 0.9
-  const pe = 0.1 + (0.28 - Math.abs(ph - pa) * 0.5) // empate más probable cuando están parejos
+  const pe = 0.1 + (0.28 - Math.abs(ph - pa) * 0.5)
   const norm = ph + pe + pa
   return {
     home: Math.max(1.05, +(1 / (ph / norm)).toFixed(2)),
@@ -31,7 +39,7 @@ function calcOdds(homeName, awayName, fixture) {
   }
 }
 
-export default function MatchDay({ matches, roundIdx, onResult, onReset, fixture }) {
+export default function MatchDay({ matches, roundIdx, onResult, onReset, fixture, histStats = {} }) {
   return (
     <div className="match-day">
       {matches.map((match, mi) => (
@@ -39,6 +47,7 @@ export default function MatchDay({ matches, roundIdx, onResult, onReset, fixture
           key={match.id}
           match={match}
           fixture={fixture}
+          histStats={histStats}
           onSave={(hg, ag) => onResult(roundIdx, mi, hg, ag)}
           onReset={() => onReset(roundIdx, mi)}
         />
@@ -47,7 +56,7 @@ export default function MatchDay({ matches, roundIdx, onResult, onReset, fixture
   )
 }
 
-function MatchCard({ match, onSave, onReset, fixture }) {
+function MatchCard({ match, onSave, onReset, fixture, histStats = {} }) {
   const [editing, setEditing] = useState(false)
   const [hg, setHg] = useState(match.homeGoals ?? 0)
   const [ag, setAg] = useState(match.awayGoals ?? 0)
@@ -89,7 +98,7 @@ function MatchCard({ match, onSave, onReset, fixture }) {
     )
   }
 
-  const odds = fixture ? calcOdds(match.home, match.away, fixture) : null
+  const odds = fixture ? calcOdds(match.home, match.away, fixture, histStats) : null
 
   return (
     <div className="match-card pending">
