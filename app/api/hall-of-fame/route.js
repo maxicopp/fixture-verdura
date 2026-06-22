@@ -5,7 +5,7 @@ export async function GET() {
   await initSchema()
 
   const champions = await dbAll(`
-    SELECT id, name, season, year, champion, top_scorer, top_scorer_goals, finished_at
+    SELECT id, name, season, year, type, champion, top_scorer, top_scorer_goals, finished_at
     FROM tournaments WHERE status = 'finished' AND champion IS NOT NULL
     ORDER BY year DESC, id DESC
   `)

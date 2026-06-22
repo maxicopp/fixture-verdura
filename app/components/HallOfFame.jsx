@@ -1,6 +1,70 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Sk } from './Skeleton'
+
+function HallOfFameSkeleton() {
+  return (
+    <div className="hall-of-fame" aria-busy="true">
+      <div className="sk-hall-header">
+        <Sk circle style={{ width: 48, height: 48 }} />
+        <Sk style={{ height: 26, width: 200 }} rounded />
+        <Sk style={{ height: 13, width: 160 }} rounded />
+      </div>
+
+      {/* Palmarés */}
+      <div className="hall-section">
+        <Sk style={{ height: 14, width: 100, marginBottom: 16 }} rounded />
+        <div className="sk-palmares-grid">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="sk-palmares-card">
+              <Sk circle style={{ width: 32, height: 32 }} />
+              <Sk circle style={{ width: 44, height: 44 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Sk style={{ height: 13, width: '60%' }} rounded />
+                <Sk style={{ height: 10, width: '40%' }} rounded />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Historial */}
+      <div className="hall-section" style={{ marginTop: '1.5rem' }}>
+        <Sk style={{ height: 14, width: 180, marginBottom: 16 }} rounded />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="sk-timeline-item">
+            <Sk style={{ height: 36, width: 60 }} rounded />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="sk-player-row">
+                <Sk circle style={{ width: 36, height: 36 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Sk style={{ height: 13, width: '50%' }} rounded />
+                  <Sk style={{ height: 10, width: '35%' }} rounded />
+                </div>
+              </div>
+              <Sk style={{ height: 10, width: '45%' }} rounded />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Goleadores */}
+      <div className="hall-section" style={{ marginTop: '1.5rem' }}>
+        <Sk style={{ height: 14, width: 160, marginBottom: 16 }} rounded />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="sk-scorer-row">
+            <Sk style={{ height: 12, width: 16 }} rounded />
+            <Sk circle style={{ width: 32, height: 32 }} />
+            <Sk style={{ height: 12, width: 60 }} rounded />
+            <Sk style={{ height: 8, flex: 1, maxWidth: 200 }} rounded />
+            <Sk style={{ height: 16, width: 24 }} rounded />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function HallOfFame() {
   const [data, setData] = useState(null)
@@ -15,7 +79,7 @@ export default function HallOfFame() {
   }, [])
 
   if (loading) {
-    return <div className="hall-loading">Cargando Salón de la Gloria...</div>
+    return <HallOfFameSkeleton />
   }
 
   if (!data || data.champions.length === 0) {
@@ -89,9 +153,11 @@ export default function HallOfFame() {
                   />
                   <div className="history-details">
                     <span className="history-champion-name">{t.champion}</span>
-                    <span className="history-tournament-name">{t.name}</span>
+                    <span className="history-tournament-name">
+                      {t.type === 'copa' ? '🏆 ' : '⚽ '}{t.name}
+                    </span>
                   </div>
-                  <span className="history-trophy">🏆</span>
+                  <span className="history-trophy">{t.type === 'copa' ? '🏆' : '🏅'}</span>
                 </div>
                 {t.top_scorer && (
                   <div className="history-scorer">

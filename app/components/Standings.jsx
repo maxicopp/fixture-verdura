@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Sk } from './Skeleton'
 
 async function fetchMotivationalQuote() {
   const res = await fetch('/api/quote', { cache: 'no-store' })
@@ -69,7 +70,11 @@ export default function Standings({ standings, disabledPlayers = [] }) {
 
       <div className="quote-card">
         {quoteLoading ? (
-          <p className="quote-loading">Cargando frase...</p>
+          <div className="sk-quote-card" aria-busy="true">
+            <Sk style={{ height: 12, width: '72%' }} rounded />
+            <Sk style={{ height: 11, width: '55%' }} rounded />
+            <Sk style={{ height: 10, width: '35%' }} rounded />
+          </div>
         ) : (
           <>
             <p className="quote-text">"{quote.text}"</p>

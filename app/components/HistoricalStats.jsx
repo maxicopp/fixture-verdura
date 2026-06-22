@@ -5,6 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar,
 } from 'recharts'
+import { Sk, SkChart } from './Skeleton'
 
 const PLAYER_COLORS = {
   Max:     '#4f6df5',
@@ -73,7 +74,76 @@ export default function HistoricalStats() {
   }
 
   if (loading) {
-    return <div className="hall-loading">Cargando estadísticas históricas...</div>
+    return (
+      <div className="historical-stats" aria-busy="true">
+        <div className="sk-hall-header">
+          <Sk circle style={{ width: 44, height: 44 }} />
+          <Sk style={{ height: 24, width: 220 }} rounded />
+          <Sk style={{ height: 13, width: 180 }} rounded />
+        </div>
+
+        {/* Table section */}
+        <div className="hist-section">
+          <Sk style={{ height: 14, width: 200, marginBottom: 8 }} rounded />
+          <Sk style={{ height: 11, width: 260, marginBottom: 16 }} rounded />
+          <div className="sk-section">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {[20, 110, 28, 28, 28, 28, 28, 28, 28, 28, 36].map((w, i) => (
+                    <th key={i} style={{ padding: '8px', textAlign: 'left' }}>
+                      <Sk style={{ height: 10, width: w, display: 'block' }} rounded />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: 10 }}><Sk style={{ height: 12, width: 20 }} rounded /></td>
+                    <td style={{ padding: 10 }}>
+                      <div className="sk-player-row sk-player-row-sm">
+                        <Sk circle style={{ width: 28, height: 28 }} />
+                        <Sk style={{ height: 12, width: 55 }} rounded />
+                      </div>
+                    </td>
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <td key={j} style={{ padding: 10 }}><Sk style={{ height: 12, width: 22 }} rounded /></td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Chart sections */}
+        {[280, 260].map((h, i) => (
+          <div key={i} className="hist-section" style={{ marginTop: '1.5rem' }}>
+            <Sk style={{ height: 14, width: 220, marginBottom: 8 }} rounded />
+            <Sk style={{ height: 11, width: 180, marginBottom: 16 }} rounded />
+            <div className="chart-card"><SkChart height={h} /></div>
+          </div>
+        ))}
+
+        {/* Tournaments list */}
+        <div className="hist-section" style={{ marginTop: '1.5rem' }}>
+          <Sk style={{ height: 14, width: 160, marginBottom: 8 }} rounded />
+          <Sk style={{ height: 11, width: 220, marginBottom: 16 }} rounded />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="sk-palmares-card" style={{ marginBottom: 8 }}>
+              <Sk circle style={{ width: 12, height: 12 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Sk style={{ height: 13, width: '50%' }} rounded />
+                <Sk style={{ height: 10, width: '35%' }} rounded />
+              </div>
+              <Sk circle style={{ width: 28, height: 28 }} />
+              <Sk style={{ height: 11, width: 60 }} rounded />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (!data) {
@@ -122,7 +192,6 @@ export default function HistoricalStats() {
               <tr>
                 <th>#</th>
                 <th>Jugador</th>
-                <th>T</th>
                 <th>PJ</th>
                 <th>PG</th>
                 <th>PE</th>
@@ -146,13 +215,7 @@ export default function HistoricalStats() {
                       className="avatar"
                     />
                     <span>{s.name}</span>
-                    {titlesMap[s.name] && (
-                      <span className="hist-titles-badge">
-                        {'⭐'.repeat(titlesMap[s.name])}
-                      </span>
-                    )}
                   </td>
-                  <td className="hist-tournaments-cell">{s.tournaments}</td>
                   <td>{s.pj}</td>
                   <td>{s.pg}</td>
                   <td>{s.pe}</td>
@@ -250,7 +313,7 @@ export default function HistoricalStats() {
                     {t.status === 'finished' ? '✅' : '🟢'}
                   </span>
                   <div className="hist-tournament-info">
-                    <span className="hist-tournament-season">{t.season} {t.year}</span>
+                    <span className="hist-tournament-season">{t.season}</span>
                     <span className="hist-tournament-name">{t.name}</span>
                   </div>
                 </div>

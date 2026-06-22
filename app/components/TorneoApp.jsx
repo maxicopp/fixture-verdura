@@ -8,6 +8,8 @@ import Champion from './Champion'
 import HallOfFame from './HallOfFame'
 import HistoricalStats from './HistoricalStats'
 import HeadToHead from './HeadToHead'
+import CopaBracket from './CopaBracket'
+import { Sk } from './Skeleton'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
 
@@ -25,6 +27,12 @@ const SECTIONS = [
       { key: 'fixture',   label: 'Fixture' },
       { key: 'stats',     label: 'Estadísticas' },
     ],
+  },
+  {
+    key: 'copa',
+    label: 'Copa',
+    icon: '🏆',
+    tabs: [],
   },
   {
     key: 'history',
@@ -112,7 +120,68 @@ export default function TorneoApp() {
   }
 
   if (loading) {
-    return <div className="app"><div className="loading">Cargando torneo...</div></div>
+    return (
+      <div className="app sk-app" aria-busy="true" aria-label="Cargando torneo">
+        {/* Header skeleton */}
+        <div className="sk-header">
+          <Sk style={{ height: 28, width: 240 }} rounded />
+          <Sk style={{ height: 14, width: 200 }} rounded />
+          <Sk style={{ height: 8, width: '80%', maxWidth: 400 }} rounded />
+        </div>
+
+        {/* Section nav skeleton */}
+        <div className="sk-nav">
+          {[120, 80, 100, 80].map((w, i) => (
+            <Sk key={i} className="sk-nav-btn" style={{ width: w }} />
+          ))}
+        </div>
+
+        {/* Sub-tabs skeleton */}
+        <div className="sk-nav" style={{ borderTop: 'none', paddingTop: '0.5rem' }}>
+          {[90, 70, 100].map((w, i) => (
+            <Sk key={i} className="sk-nav-btn" style={{ width: w, height: 30 }} />
+          ))}
+        </div>
+
+        {/* Standings table skeleton */}
+        <div className="sk-content">
+          <div className="sk-standings-table">
+            <table>
+              <thead>
+                <tr>
+                  {[20, 120, 30, 30, 30, 30, 30, 30, 30, 36].map((w, i) => (
+                    <th key={i}><Sk style={{ height: 10, width: w, display: 'block' }} rounded /></th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td><Sk style={{ height: 12, width: 20 }} rounded /></td>
+                    <td>
+                      <div className="sk-player-row sk-player-row-sm">
+                        <Sk circle style={{ width: 28, height: 28 }} />
+                        <Sk style={{ height: 12, width: 60 }} rounded />
+                      </div>
+                    </td>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <td key={j}><Sk style={{ height: 12, width: 22 }} rounded /></td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Quote card skeleton */}
+          <div className="sk-quote-card">
+            <Sk style={{ height: 12, width: '70%' }} rounded />
+            <Sk style={{ height: 11, width: '45%' }} rounded />
+            <Sk style={{ height: 10, width: '30%' }} rounded />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const totalMatches  = fixture.reduce((acc, r) => acc + r.matches.length, 0)
@@ -177,6 +246,11 @@ export default function TorneoApp() {
         )}
         {activeSection.key === 'current' && activeTab === 'stats' && (
           <Stats fixture={fixture} standings={standings} disabledPlayers={disabledPlayers} />
+        )}
+
+        {/* Copa */}
+        {activeSection.key === 'copa' && (
+          <CopaBracket />
         )}
 
         {/* Historial */}

@@ -4,7 +4,7 @@ import { dbAll, dbRun, initSchema } from '../../lib/db'
 export async function GET() {
   await initSchema()
   const tournaments = await dbAll(`
-    SELECT id, name, season, year, status, champion, top_scorer, top_scorer_goals, created_at, finished_at
+    SELECT id, name, season, year, type, status, champion, top_scorer, top_scorer_goals, created_at, finished_at
     FROM tournaments ORDER BY year DESC, id DESC
   `)
   return Response.json(tournaments)

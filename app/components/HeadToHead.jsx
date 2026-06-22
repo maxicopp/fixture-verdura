@@ -1,6 +1,62 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Sk } from './Skeleton'
+
+function H2HSkeleton() {
+  return (
+    <div className="h2h-content" aria-busy="true">
+      {/* Score card */}
+      <div className="sk-h2h-score-card">
+        <div className="sk-h2h-side">
+          <Sk circle style={{ width: 56, height: 56 }} />
+          <Sk style={{ height: 13, width: 60 }} rounded />
+          <Sk style={{ height: 32, width: 48 }} rounded />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <Sk style={{ height: 24, width: 32 }} rounded />
+          <Sk style={{ height: 10, width: 50 }} rounded />
+        </div>
+        <div className="sk-h2h-side">
+          <Sk circle style={{ width: 56, height: 56 }} />
+          <Sk style={{ height: 13, width: 60 }} rounded />
+          <Sk style={{ height: 32, width: 48 }} rounded />
+        </div>
+      </div>
+
+      {/* Dominance bar */}
+      <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
+        <Sk style={{ height: 28, width: '100%', display: 'block' }} rounded />
+      </div>
+
+      {/* Compare stats */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 1rem 1rem' }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Sk style={{ height: 18, width: 40 }} rounded />
+            <Sk style={{ height: 11, flex: 1 }} rounded />
+            <Sk style={{ height: 18, width: 40 }} rounded />
+          </div>
+        ))}
+      </div>
+
+      {/* Match list */}
+      <div style={{ padding: '0 1rem' }}>
+        <Sk style={{ height: 13, width: 180, marginBottom: 12 }} rounded />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Sk style={{ height: 10, width: 140 }} rounded />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sk style={{ height: 13, width: 70 }} rounded />
+              <Sk style={{ height: 16, width: 50 }} rounded />
+              <Sk style={{ height: 13, width: 70 }} rounded />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function HeadToHead({ players }) {
   const [p1, setP1] = useState(players[0] || '')
@@ -53,7 +109,7 @@ export default function HeadToHead({ players }) {
         </div>
       )}
 
-      {loading && <div className="h2h-loading">Cargando enfrentamientos...</div>}
+      {loading && <H2HSkeleton />}
 
       {data && !loading && (
         <div className="h2h-content">
