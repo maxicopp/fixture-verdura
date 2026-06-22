@@ -579,7 +579,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
     setAwayPen(match.awayPenalties ?? '')
   }, [match.played, match.homeGoals, match.awayGoals, match.penaltyWinner, match.homePenalties, match.awayPenalties])
 
-  const isTBD  = match.home === 'TBD' || match.away === 'TBD'
+  const isTBD  = !match.home || match.home === 'TBD' || !match.away || match.away === 'TBD'
   const isQF   = match.id?.startsWith('qf')
   const isDraw = homeGoals !== '' && awayGoals !== '' && Number(homeGoals) === Number(awayGoals)
   const needsPenalty = !isQF && isDraw
@@ -608,7 +608,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
   return (
     <div className={`admin-match-card ${match.played ? 'played' : 'pending'} ${isTBD ? 'admin-match-tbd' : ''}`}>
       <span className="admin-match-team admin-match-home">
-        {match.home !== 'TBD' ? (
+        {match.home && match.home !== 'TBD' ? (
           <>
             <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
             {match.home}
@@ -639,7 +639,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
       </div>
 
       <span className="admin-match-team admin-match-away">
-        {match.away !== 'TBD' ? (
+        {match.away && match.away !== 'TBD' ? (
           <>
             {match.away}
             <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
@@ -650,7 +650,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
       </span>
 
       {/* Penalty inputs — appear only for SF/Final draws on non-TBD matches */}
-      {needsPenalty && !isTBD && match.home !== 'TBD' && match.away !== 'TBD' && (
+      {needsPenalty && !isTBD && (
         <div className="admin-penalty-selector">
           <span className="admin-penalty-label">🎯 Penales (marcador):</span>
           <div className="admin-penalty-score-row">
@@ -694,7 +694,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
       )}
 
       {/* Already played with penalties */}
-      {match.played && match.penaltyWinner && match.home !== 'TBD' && match.away !== 'TBD' && (
+      {match.played && match.penaltyWinner && match.home && match.away && match.home !== 'TBD' && match.away !== 'TBD' && (
         <p className="admin-copa-penalty-note">
           🎯 Penales: {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} · Gana <strong>{match.penaltyWinner}</strong>
         </p>

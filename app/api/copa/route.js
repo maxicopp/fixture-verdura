@@ -29,13 +29,13 @@ export async function GET() {
     [tournament.id]
   )
 
-  // Convertir a formato de bracket
+  // Convertir a formato de bracket — normalizar null a 'TBD'
   let matches = matchRows.map(m => ({
     id: m.match_key,
     stage: m.stage,
     round: m.round,
-    home: m.home,
-    away: m.away,
+    home: m.home ?? 'TBD',
+    away: m.away ?? 'TBD',
     homeGoals: m.home_goals,
     awayGoals: m.away_goals,
     played: !!m.played,

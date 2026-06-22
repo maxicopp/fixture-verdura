@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Confetti from './Confetti'
-import { Sk, SkMatchCard } from './Skeleton'
+import { Sk } from './Skeleton'
 
 const PLAYER_COLORS = {
   Max:     '#4f6df5',
@@ -13,152 +13,136 @@ const PLAYER_COLORS = {
   Negro:   '#64748b',
 }
 const getColor = name => PLAYER_COLORS[name] ?? '#9ca3af'
+const isValid  = name  => name && name !== 'TBD'
 
-function getWinner(match, seedMap) {
+function getWinner(match, seedMap, isQF) {
   if (!match?.played) return null
   if (match.homeGoals > match.awayGoals) return match.home
   if (match.awayGoals > match.homeGoals) return match.away
-  const hs = seedMap[match.home] ?? 99
-  const as = seedMap[match.away] ?? 99
-  return hs <= as ? match.home : match.away
+  if (isQF) {
+    const hs = seedMap[match.home] ?? 99
+    const as = seedMap[match.away] ?? 99
+    return hs <= as ? match.home : match.away
+  }
+  return match.penaltyWinner ?? null
 }
 
-// ─── One matchup card ────────────────────────────────────────────────────────
-// isQF: empate clasifica por tabla. isSF/isFinal: partido definitivo.
-function MatchCard({ match, seedMap, isFinal = false, isSF = false, isQF = false }) {
-  if (!match) return <div className="bracket-card bracket-card-tbd"><PlaceholderSlot /><div className="bracket-card-divider" /><PlaceholderSlot /></div>
+// ─── Player row inside a match card ─────────────────────────────────────────
+function MatchRow({ name, seed, goals, penGoals, isWinner, isLoser, isBye = false }) {
+  if (isBye) {
+    return (
+      <div className="mc-row mc-row-bye">
+        <div className="mc-seed" style={{ background: getColor(name) }}>{seed}</div>
+        <img src={`/players/${name.toLowerCase()}.png`} alt={name} className="mc-avatar" />
+        <span className="mc-name">{name}</span>
+        <span className="mc-bye-pill">BYE</span>
+      </div>
+    )
+  }
+  if (!isValid(name)) {
+    return (
+      <div className="mc-row mc-row-tbd">
+        <span className="mc-tbd-dot" />
+        <span className="mc-tbd-label">Por definir</span>
+      </div>
+    )
+  }
+  return (
+    <div className={`mc-row ${isWinner ? 'mc-row-winner' : ''} ${isLoser ? 'mc-row-loser' : ''}`}>
+      <div className="mc-seed" style={{ background: getColor(name) }}>{seed}</div>
+      <img src={`/players/${name.toLowerCase()}.png`} alt={name} className="mc-avatar" />
+      <span className="mc-name">{name}</span>
+      <span className="mc-spacer" />
+      {goals !== null && goals !== undefined && (
+        <span className={`mc-score ${isWinner ? 'mc-score-win' : ''}`}>
+          {goals}
+          {penGoals != null && <sup className="mc-pen-sup">({penGoals})</sup>}
+        </span>
+      )}
+      {isWinner && <span className="mc-check">✓</span>}
+    </div>
+  )
+}
 
-  const isDraw = match.played && match.homeGoals === match.awayGoals
-
-  // Winner resolution: QF uses seed tie-break, SF/Final must have a clear winner
-  let winner = null
-  if (match.played) {
-    if (match.homeGoals > match.awayGoals) winner = match.home
-    else if (match.awayGoals > match.homeGoals) winner = match.away
-    else if (isQF) {
-      const hs = seedMap[match.home] ?? 99
-      const as = seedMap[match.away] ?? 99
-      winner = hs <= as ? match.home : match.away
-    }
+// ─── Match card ──────────────────────────────────────────────────────────────
+function MatchCard({ match, seedMap, isQF = false, isFinal = false, isBye = false, byePlayer, byeSeed }) {
+  // Bye card variant
+  if (isBye) {
+    if (!byePlayer) return <div className="mc mc-bye-empty" />
+    return (
+      <div className="mc mc-bye">
+        <MatchRow name={byePlayer} seed={byeSeed} isBye />
+      </div>
+    )
   }
 
+  if (!match) return (
+    <div className="mc mc-tbd">
+      <div className="mc-row mc-row-tbd"><span className="mc-tbd-dot" /><span className="mc-tbd-label">Por definir</span></div>
+      <div className="mc-divider" />
+      <div className="mc-row mc-row-tbd"><span className="mc-tbd-dot" /><span className="mc-tbd-label">Por definir</span></div>
+    </div>
+  )
+
+  const winner = getWinner(match, seedMap, isQF)
+  const isDraw = match.played && match.homeGoals === match.awayGoals
+  const hasPen = isDraw && match.penaltyWinner
+
   return (
-    <div className={`bracket-card ${match.played ? 'bracket-card-done' : 'bracket-card-pending'} ${isFinal ? 'bracket-card-highlight' : ''}`}>
-      <PlayerSlot
+    <div className={[
+      'mc',
+      match.played ? 'mc-done' : 'mc-pending',
+      isFinal ? 'mc-final' : '',
+    ].filter(Boolean).join(' ')}>
+
+      <MatchRow
         name={match.home}
-        goals={match.played ? match.homeGoals : null}
-        isWinner={!!winner && winner === match.home}
-        isLoser={match.played && !!winner && winner !== match.home}
         seed={seedMap[match.home]}
+        goals={match.played ? match.homeGoals : null}
+        penGoals={hasPen ? match.homePenalties : null}
+        isWinner={match.played && winner === match.home}
+        isLoser={match.played && winner !== match.home}
       />
-      <div className="bracket-card-divider" />
-      <PlayerSlot
+      <div className="mc-divider" />
+      <MatchRow
         name={match.away}
-        goals={match.played ? match.awayGoals : null}
-        isWinner={!!winner && winner === match.away}
-        isLoser={match.played && !!winner && winner !== match.away}
         seed={seedMap[match.away]}
+        goals={match.played ? match.awayGoals : null}
+        penGoals={hasPen ? match.awayPenalties : null}
+        isWinner={match.played && winner === match.away}
+        isLoser={match.played && winner !== match.away}
       />
-      {/* Rule note under pending cards */}
-      {!match.played && match.home !== 'TBD' && match.away !== 'TBD' && (
-        <div className="bracket-card-rule-note">
-          {isQF
-            ? '⚖️ Empate clasifica por tabla'
-            : '⏱ Alargue · Penales si necesario'}
+
+      {/* Footer note */}
+      {!match.played && isValid(match.home) && isValid(match.away) && (
+        <div className="mc-note">
+          {isQF ? '⚖️ Empate → clasifica por tabla' : '⏱ Alargue · Penales si necesario'}
         </div>
       )}
-      {/* Draw indicator for QF */}
-      {isDraw && isQF && (
-        <div className="bracket-card-draw-note">⚖️ Empate · clasifica por tabla</div>
+      {match.played && isDraw && isQF && (
+        <div className="mc-note mc-note-draw">⚖️ Clasifica {winner} por tabla</div>
       )}
-      {/* Penalty winner for SF/Final */}
-      {match.played && !isQF && match.penaltyWinner && (
-        <div className="bracket-card-draw-note">
-          🎯 {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} pen · <strong>{match.penaltyWinner}</strong> avanza
-        </div>
+      {match.played && hasPen && (
+        <div className="mc-note mc-note-pen">🎯 {match.penaltyWinner} gana en penales</div>
       )}
     </div>
   )
 }
 
-function PlayerSlot({ name, goals, isWinner, isLoser, seed }) {
-  if (!name || name === 'TBD') return <PlaceholderSlot />
+// ─── Stage section ────────────────────────────────────────────────────────────
+function Stage({ label, sublabel, children, isFinal = false }) {
   return (
-    <div className={`bracket-slot ${isWinner ? 'bracket-slot-winner' : ''} ${isLoser ? 'bracket-slot-loser' : ''}`}>
-      <div className="bracket-slot-seed" style={{ background: getColor(name) }}>{seed ?? '?'}</div>
-      <img src={`/players/${name.toLowerCase()}.png`} alt={name} className="bracket-slot-avatar" />
-      <span className="bracket-slot-name">{name}</span>
-      {goals !== null && <span className={`bracket-slot-score ${isWinner ? 'bracket-score-win' : ''}`}>{goals}</span>}
-      {isWinner && <span className="bracket-slot-check">✓</span>}
-    </div>
-  )
-}
-
-function PlaceholderSlot() {
-  return (
-    <div className="bracket-slot bracket-slot-tbd">
-      <span className="bracket-tbd-dot" />
-      <span className="bracket-tbd-text">Por definir</span>
-    </div>
-  )
-}
-
-function ByeCard({ player, seed }) {
-  if (!player) return null
-  return (
-    <div className="bracket-card bracket-bye-card">
-      <div className="bracket-bye-inner">
-        <div className="bracket-slot-seed" style={{ background: getColor(player) }}>{seed}</div>
-        <img src={`/players/${player.toLowerCase()}.png`} alt={player} className="bracket-slot-avatar" />
-        <span className="bracket-slot-name">{player}</span>
-        <span className="bracket-bye-label">BYE</span>
+    <div className={`copa-stage ${isFinal ? 'copa-stage-final' : ''}`}>
+      <div className="copa-stage-header">
+        <span className="copa-stage-label">{label}</span>
+        {sublabel && <span className="copa-stage-sublabel">{sublabel}</span>}
       </div>
+      <div className="copa-stage-cards">{children}</div>
     </div>
   )
 }
 
-// ─── Bracket layout ───────────────────────────────────────────────────────────
-//
-//  [QF1]  ─┐
-//           ├─ [SF1] ─┐
-//  [BYE 1°] ─┘          │
-//                        ├─ [FINAL]
-//  [QF2]  ─┐          │
-//           ├─ [SF2] ─┘
-//  [BYE 2°] ─┘
-//
-// Columns:  qf | conn | sf | conn | final
-// Each connector is a small SVG with bracket lines
-
-function ConnectorLeft({ topToMid = true }) {
-  // Connects two cards on left to one card on right
-  return (
-    <svg className="bracket-connectors" viewBox="0 0 40 200" preserveAspectRatio="none">
-      <polyline className="bracket-connector-line" points="0,50 20,50 20,100 40,100" />
-      <polyline className="bracket-connector-line" points="0,150 20,150 20,100 40,100" />
-    </svg>
-  )
-}
-
-function ConnectorRight() {
-  return (
-    <svg className="bracket-connectors" viewBox="0 0 40 200" preserveAspectRatio="none">
-      <polyline className="bracket-connector-line" points="40,50 20,50 20,100 0,100" />
-      <polyline className="bracket-connector-line" points="40,150 20,150 20,100 0,100" />
-    </svg>
-  )
-}
-
-function ConnectorSingle(props) {
-  const { fromRight } = props
-  return (
-    <svg className="bracket-connectors-single" viewBox="0 0 40 100" preserveAspectRatio="none">
-      <polyline className="bracket-connector-line" points={fromRight ? '40,50 0,50' : '0,50 40,50'} />
-    </svg>
-  )
-}
-
-// ─── Main export ─────────────────────────────────────────────────────────────
+// ─── Main ────────────────────────────────────────────────────────────────────
 export default function CopaBracket() {
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
@@ -175,7 +159,6 @@ export default function CopaBracket() {
   if (loading) {
     return (
       <div className="copa-bracket" aria-busy="true">
-        {/* Hero skeleton */}
         <div className="bracket-hero" style={{ minHeight: 120 }}>
           <div className="bracket-hero-bg" aria-hidden />
           <div className="bracket-hero-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -184,57 +167,12 @@ export default function CopaBracket() {
             <Sk style={{ height: 28, width: 160, borderRadius: 100 }} />
           </div>
         </div>
-
-        {/* Bracket skeleton */}
-        <div className="bracket-wrapper">
-          <div className="bracket-col-headers" style={{ visibility: 'hidden' }}>
-            {[0,1,2,3,4].map(i => <div key={i} />)}
-          </div>
-          <div className="bracket-grid">
-            {/* QF col */}
-            <div className="bracket-col-left">
-              <div className="bracket-cell-top"><SkMatchCard /></div>
-              <div className="bracket-cell-bot"><SkMatchCard /></div>
-            </div>
-            {/* connector */}
-            <svg className="bracket-connectors" viewBox="0 0 40 200" preserveAspectRatio="none">
-              <polyline className="bracket-connector-line" points="0,50 20,50 20,100 40,100" />
-              <polyline className="bracket-connector-line" points="0,150 20,150 20,100 40,100" />
-            </svg>
-            {/* SF */}
-            <div className="bracket-col-mid"><SkMatchCard /></div>
-            {/* connector */}
-            <svg className="bracket-connectors-single" viewBox="0 0 40 100" preserveAspectRatio="none">
-              <polyline className="bracket-connector-line" points="0,50 40,50" />
-            </svg>
-            {/* Final */}
-            <div className="bracket-col-mid"><SkMatchCard /></div>
-            {/* connector */}
-            <svg className="bracket-connectors-single" viewBox="0 0 40 100" preserveAspectRatio="none">
-              <polyline className="bracket-connector-line" points="40,50 0,50" />
-            </svg>
-            {/* SF right */}
-            <div className="bracket-col-mid"><SkMatchCard /></div>
-            {/* connector */}
-            <svg className="bracket-connectors" viewBox="0 0 40 200" preserveAspectRatio="none">
-              <polyline className="bracket-connector-line" points="40,50 20,50 20,100 0,100" />
-              <polyline className="bracket-connector-line" points="40,150 20,150 20,100 0,100" />
-            </svg>
-            {/* Byes col */}
-            <div className="bracket-col-left">
-              <div className="bracket-cell-top"><SkMatchCard /></div>
-              <div className="bracket-cell-bot"><SkMatchCard /></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Seeds bar skeleton */}
-        <div className="bracket-seeds-bar">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bracket-seed-chip">
-              <Sk circle style={{ width: 20, height: 20 }} />
-              <Sk circle style={{ width: 20, height: 20 }} />
-              <Sk style={{ height: 12, width: 45 }} rounded />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '1.5rem 1rem' }}>
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="mc mc-pending">
+              <div className="mc-row mc-row-tbd"><Sk circle style={{ width: 28, height: 28 }} /><Sk style={{ height: 12, width: 100 }} rounded /></div>
+              <div className="mc-divider" />
+              <div className="mc-row mc-row-tbd"><Sk circle style={{ width: 28, height: 28 }} /><Sk style={{ height: 12, width: 80 }} rounded /></div>
             </div>
           ))}
         </div>
@@ -253,7 +191,6 @@ export default function CopaBracket() {
       </div>
     )
   }
-
   if (error || !data) {
     return <div className="copa-bracket"><div className="bracket-empty"><div className="bracket-empty-icon">⚠️</div><p className="bracket-empty-sub">Error al cargar la Copa.</p></div></div>
   }
@@ -266,8 +203,6 @@ export default function CopaBracket() {
   for (const m of matches) byId[m.id] = m
 
   const isFinished = tournament.status === 'finished'
-
-  // Get bye players (positions 1 and 2)
   const bye1 = players.find(p => p.seed === 1)
   const bye2 = players.find(p => p.seed === 2)
 
@@ -275,11 +210,11 @@ export default function CopaBracket() {
     <div className="copa-bracket">
       {isFinished && champion && <Confetti active duration={6000} />}
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <div className="bracket-hero">
         <div className="bracket-hero-bg" aria-hidden />
         <div className="bracket-hero-content">
-          <span className="bracket-eyebrow">Copa · {tournament.season} {tournament.year}</span>
+          <span className="bracket-eyebrow">Copa · {tournament.season}</span>
           <h2 className="bracket-hero-title">{tournament.name}</h2>
           {isFinished && champion
             ? <div className="bracket-champion-pill">
@@ -291,75 +226,58 @@ export default function CopaBracket() {
         </div>
       </div>
 
-      {/* ── Bracket ── */}
-      <div className="bracket-wrapper">
-        {/* Column headers */}
-        <div className="bracket-col-headers">
-          <div className="bracket-col-header">Cuartos</div>
-          <div className="bracket-col-header-spacer" />
-          <div className="bracket-col-header">Semis</div>
-          <div className="bracket-col-header-spacer" />
-          <div className="bracket-col-header bracket-col-header-final">⚽ Final</div>
-          <div className="bracket-col-header-spacer" />
-          <div className="bracket-col-header">Semis</div>
-          <div className="bracket-col-header-spacer" />
-          <div className="bracket-col-header">Byes</div>
+      {/* Bracket — vertical stages */}
+      <div className="copa-stages-wrap">
+
+        {/* Cuartos */}
+        <Stage label="⚔️ Cuartos de Final" sublabel="Empate → clasifica por tabla de liga">
+          <MatchCard match={byId['qf1']} seedMap={seedMap} isQF />
+          <MatchCard match={byId['qf2']} seedMap={seedMap} isQF />
+        </Stage>
+
+        {/* Arrow */}
+        <div className="copa-stage-arrow" aria-hidden>↓</div>
+
+        {/* Semis */}
+        <Stage label="🔥 Semifinales" sublabel="Alargue · Penales si necesario">
+          <MatchCard match={byId['sf1']} seedMap={seedMap} />
+          <MatchCard match={byId['sf2']} seedMap={seedMap} />
+        </Stage>
+
+        {/* Arrow */}
+        <div className="copa-stage-arrow" aria-hidden>↓</div>
+
+        {/* Final */}
+        <Stage label="🏆 Final" isFinal>
+          <MatchCard match={byId['final']} seedMap={seedMap} isFinal />
+        </Stage>
+
+        {/* Byes info */}
+        <div className="copa-byes-row">
+          <span className="copa-byes-label">🎟️ Clasificaron directo a semis</span>
+          <div className="copa-byes-cards">
+            {bye1 && (
+              <div className="copa-bye-chip">
+                <div className="mc-seed" style={{ background: getColor(bye1.name) }}>1</div>
+                <img src={`/players/${bye1.name.toLowerCase()}.png`} alt={bye1.name} className="mc-avatar" />
+                <span>{bye1.name}</span>
+                <span className="mc-bye-pill">BYE</span>
+              </div>
+            )}
+            {bye2 && (
+              <div className="copa-bye-chip">
+                <div className="mc-seed" style={{ background: getColor(bye2.name) }}>2</div>
+                <img src={`/players/${bye2.name.toLowerCase()}.png`} alt={bye2.name} className="mc-avatar" />
+                <span>{bye2.name}</span>
+                <span className="mc-bye-pill">BYE</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Grid */}
-        <div className="bracket-grid">
-
-          {/* ── Col A: QF ── */}
-          <div className="bracket-col-left">
-            <div className="bracket-cell-top">
-              <MatchCard match={byId['qf1']} seedMap={seedMap} isQF />
-            </div>
-            <div className="bracket-cell-bot">
-              <MatchCard match={byId['qf2']} seedMap={seedMap} isQF />
-            </div>
-          </div>
-
-          {/* ── Conn A→B ── */}
-          <ConnectorLeft />
-
-          {/* ── Col B: SF left ── */}
-          <div className="bracket-col-mid">
-            <MatchCard match={byId['sf1']} seedMap={seedMap} isSF />
-          </div>
-
-          {/* ── Conn B→C ── */}
-          <ConnectorSingle />
-
-          {/* ── Col C: Final ── */}
-          <div className="bracket-col-mid">
-            <MatchCard match={byId['final']} seedMap={seedMap} isFinal />
-          </div>
-
-          {/* ── Conn C←D ── */}
-          <ConnectorSingle fromRight />
-
-          {/* ── Col D: SF right ── */}
-          <div className="bracket-col-mid">
-            <MatchCard match={byId['sf2']} seedMap={seedMap} isSF />
-          </div>
-
-          {/* ── Conn D←E ── */}
-          <ConnectorRight />
-
-          {/* ── Col E: Byes ── */}
-          <div className="bracket-col-left">
-            <div className="bracket-cell-top">
-              <ByeCard player={bye1?.name} seed={1} />
-            </div>
-            <div className="bracket-cell-bot">
-              <ByeCard player={bye2?.name} seed={2} />
-            </div>
-          </div>
-
-        </div>
       </div>
 
-      {/* ── Seeds legend ── */}
+      {/* Seeds legend */}
       <div className="bracket-seeds-bar">
         {players.map((p, i) => (
           <div key={p.name} className={`bracket-seed-chip ${i < 2 ? 'bracket-seed-chip-bye' : ''}`}>
@@ -370,9 +288,8 @@ export default function CopaBracket() {
           </div>
         ))}
       </div>
-      <p className="bracket-tiebreak-note">⚖️ Cuartos: empate clasifica por tabla · Semis y Final: alargue y penales</p>
 
-      {/* ── Champion ── */}
+      {/* Champion */}
       {isFinished && champion && (
         <div className="bracket-champion-panel">
           <div className="bracket-champion-glow" aria-hidden />

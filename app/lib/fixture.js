@@ -103,39 +103,39 @@ export function resolveCopaBracket(matches, seedMap = {}) {
     if (!m || !m.played) return null
     if (m.homeGoals > m.awayGoals) return m.home
     if (m.awayGoals > m.homeGoals) return m.away
-    // Solo cuartos resuelven empate por seed
+    // Draw resolution
     if (isQF) {
+      // Cuartos: mejor seed de liga
       const hs = seedMap[m.home] ?? 99
       const as = seedMap[m.away] ?? 99
       return hs <= as ? m.home : m.away
     }
-    return null // SF/Final empate no debería llegar aquí
+    // SF/Final: ganador por penales
+    if (m.penaltyWinner) return m.penaltyWinner
+    return null
   }
 
-  const qf1 = matchMap['qf1']
-  const qf2 = matchMap['qf2']
-  const sf1 = matchMap['sf1']
-  const sf2 = matchMap['sf2']
+  const qf1   = matchMap['qf1']
+  const qf2   = matchMap['qf2']
+  const sf1   = matchMap['sf1']
+  const sf2   = matchMap['sf2']
   const final_ = matchMap['final']
 
-  if (qf1?.played && sf1) sf1.away   = getWinner(qf1, true)
-  if (qf2?.played && sf2) sf2.away   = getWinner(qf2, true)
+  if (qf1?.played && sf1)    sf1.away    = getWinner(qf1, true)
+  if (qf2?.played && sf2)    sf2.away    = getWinner(qf2, true)
   if (sf1?.played && final_) final_.home = getWinner(sf1, false)
   if (sf2?.played && final_) final_.away = getWinner(sf2, false)
 
   return matches
 }
 
-/**
- * Obtener el campeón de la copa (ganador de la final).
- * La final siempre tiene un ganador claro (no hay empate).
- */
 export function getCopaChampion(matches) {
   const final_ = matches.find(m => m.id === 'final' || m.stage === 'final')
   if (!final_ || !final_.played) return null
   if (final_.homeGoals > final_.awayGoals) return final_.home
   if (final_.awayGoals > final_.homeGoals) return final_.away
-  return null // no debería ocurrir
+  if (final_.penaltyWinner) return final_.penaltyWinner
+  return null
 }
 
 export function generateFixture(players) {
