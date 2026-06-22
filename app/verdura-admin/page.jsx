@@ -120,7 +120,8 @@ function AdminPanel({ onLogout }) {
   }
 
   const loadData = useCallback(() => {
-    fetch('/api/tournaments/active')
+    // Admin carga el torneo más reciente (activo o finalizado)
+    fetch('/api/tournaments/latest')
       .then(r => r.json())
       .then(data => {
         if (!data.error) {
@@ -209,12 +210,19 @@ function AdminPanel({ onLogout }) {
 
   return (
     <div className="app">
-      <header className="header">
-        <div className="admin-header-row">
-          <div className="admin-badge">🔒 ADMIN</div>
-          <button className="admin-logout" onClick={handleLogout}>Cerrar sesión</button>
+      {/* Top bar del admin */}
+      <div className="admin-topbar">
+        <div className="admin-topbar-left">
+          <span className="admin-badge">🔒 Admin</span>
+          <span className="admin-topbar-title">Torneo Los Verduras</span>
         </div>
-        <h1>Torneo Los Verduras Apertura 2026</h1>
+        <button className="admin-logout" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
+      </div>
+
+      <header className="admin-header-section">
+        <h1>Apertura 2026</h1>
         <p className="subtitle">{players.length} jugadores · {totalMatches} partidos</p>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -225,7 +233,6 @@ function AdminPanel({ onLogout }) {
             {notification}
           </div>
         )}
-        {saving && <div className="admin-saving">Guardando...</div>}
       </header>
 
       <nav className="tabs">
@@ -300,7 +307,6 @@ function AdminMatchCard({ match, onSave, onReset }) {
   const [homeGoals, setHomeGoals] = useState(match.played ? match.homeGoals : '')
   const [awayGoals, setAwayGoals] = useState(match.played ? match.awayGoals : '')
 
-  // Sync with prop changes
   useEffect(() => {
     setHomeGoals(match.played ? match.homeGoals : '')
     setAwayGoals(match.played ? match.awayGoals : '')
@@ -314,43 +320,42 @@ function AdminMatchCard({ match, onSave, onReset }) {
   }
 
   return (
-    <div className={`match-card ${match.played ? 'played' : 'pending'}`}>
-      <div className="match-teams">
-        <span className="team team-home">
-          {match.home}
-          <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
-        </span>
-        <div className="score-input">
-          <input
-            type="number"
-            min="0"
-            max="99"
-            value={homeGoals}
-            onChange={e => setHomeGoals(e.target.value)}
-            placeholder="–"
-          />
-          <span>-</span>
-          <input
-            type="number"
-            min="0"
-            max="99"
-            value={awayGoals}
-            onChange={e => setAwayGoals(e.target.value)}
-            placeholder="–"
-          />
-        </div>
-        <span className="team team-away">
-          <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
-          {match.away}
-        </span>
+    <div className={`admin-match-card ${match.played ? 'played' : 'pending'}`}>
+      <span className="admin-match-team admin-match-home">
+        <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+        {match.home}
+      </span>
+
+      <div className="admin-match-center">
+        <input
+          type="number" min="0" max="99"
+          value={homeGoals}
+          onChange={e => setHomeGoals(e.target.value)}
+          className="admin-score-input"
+          placeholder="–"
+        />
+        <span className="admin-score-sep">-</span>
+        <input
+          type="number" min="0" max="99"
+          value={awayGoals}
+          onChange={e => setAwayGoals(e.target.value)}
+          className="admin-score-input"
+          placeholder="–"
+        />
       </div>
-      <div className="match-actions">
-        <button className="btn-save" onClick={handleSave} disabled={!canSave}>
-          💾 Guardar
+
+      <span className="admin-match-team admin-match-away">
+        {match.away}
+        <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+      </span>
+
+      <div className="admin-match-actions">
+        <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
+          Guardar
         </button>
         {match.played && (
-          <button className="btn-sm btn-danger" onClick={onReset}>
-            🔄 Resetear
+          <button className="admin-btn-reset" onClick={onReset}>
+            Resetear
           </button>
         )}
       </div>

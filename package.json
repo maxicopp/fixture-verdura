@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node app/lib/seed.js"
+    "seed": "node app/lib/seed.js",
+    "sync": "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN node scripts/sync-from-turso.js"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

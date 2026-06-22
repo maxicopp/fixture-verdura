@@ -1,18 +1,13 @@
 import { dbGet, dbAll, initSchema } from '../../../lib/db'
 
-// GET /api/tournaments/active
-// Si hay un torneo activo lo devuelve. Si no, devuelve el más reciente
-// (puede ser un torneo finalizado — así la app pública sigue mostrando el campeón)
+// GET /api/tournaments/latest — el torneo más reciente sin importar status
+// Usado por el admin para poder editar aunque el torneo esté finalizado
 export async function GET() {
   await initSchema()
 
-  let tournament = await dbGet(
-    "SELECT * FROM tournaments WHERE status = 'active' ORDER BY id DESC LIMIT 1"
+  const tournament = await dbGet(
+    'SELECT * FROM tournaments ORDER BY id DESC LIMIT 1'
   )
-
-  if (!tournament) {
-    tournament = await dbGet('SELECT * FROM tournaments ORDER BY id DESC LIMIT 1')
-  }
 
   if (!tournament) {
     return Response.json({ error: 'No hay torneos' }, { status: 404 })
