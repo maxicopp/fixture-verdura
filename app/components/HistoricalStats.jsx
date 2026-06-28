@@ -46,7 +46,8 @@ export default function HistoricalStats() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedTournament, setSelectedTournament] = useState(null)
-  const [tournamentDetail, setTournamentDetail] = useState(null)
+  const [detailCache, setDetailCache] = useState({}) // Cache de detalles ya cargados
+  const [detailLoading, setDetailLoading] = useState(false)
   const [tournaments, setTournaments] = useState([])
 
   useEffect(() => {
@@ -60,18 +61,38 @@ export default function HistoricalStats() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Prefetch al hacer hover sobre un torneo
+  const prefetchTournament = (id) => {
+    if (detailCache[id]) return // Ya está en cache
+    fetch(`/api/tournaments/${id}`)
+      .then(r => r.json())
+      .then(detail => {
+        setDetailCache(prev => ({ ...prev, [id]: detail }))
+      })
+      .catch(() => {})
+  }
+
   const loadTournamentDetail = (id) => {
     if (selectedTournament === id) {
       setSelectedTournament(null)
-      setTournamentDetail(null)
       return
     }
     setSelectedTournament(id)
+
+    // Si ya está en cache, no hacer fetch
+    if (detailCache[id]) return
+
+    setDetailLoading(true)
     fetch(`/api/tournaments/${id}`)
       .then(r => r.json())
-      .then(setTournamentDetail)
-      .catch(() => setTournamentDetail(null))
+      .then(detail => {
+        setDetailCache(prev => ({ ...prev, [id]: detail }))
+      })
+      .catch(() => {})
+      .finally(() => setDetailLoading(false))
   }
+
+  const tournamentDetail = selectedTournament ? detailCache[selectedTournament] : null
 
   if (loading) {
     return (
@@ -307,6 +328,8 @@ export default function HistoricalStats() {
               <button
                 className={`hist-tournament-card ${selectedTournament === t.id ? 'hist-tournament-selected' : ''}`}
                 onClick={() => loadTournamentDetail(t.id)}
+                onMouseEnter={() => prefetchTournament(t.id)}
+                onTouchStart={() => prefetchTournament(t.id)}
               >
                 <div className="hist-tournament-left">
                   <span className="hist-tournament-status">
@@ -335,9 +358,15 @@ export default function HistoricalStats() {
                 </div>
               </button>
 
-              {/* Detalle expandido */}
-              {selectedTournament === t.id && tournamentDetail && (
-                <TournamentDetail data={tournamentDetail} />
+              {/* Detalle expandido con transición */}
+              {selectedTournament === t.id && (
+                <div className="hist-detail-expand">
+                  {tournamentDetail ? (
+                    <TournamentDetail data={tournamentDetail} />
+                  ) : (
+                    <TournamentDetailSkeleton />
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -471,6 +500,53 @@ function TournamentDetail({ data }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Skeleton para detalle de torneo (loading state) ─────────────────────────
+
+function TournamentDetailSkeleton() {
+  return (
+    <div className="hist-detail" aria-busy="true">
+      {/* KPIs skeleton */}
+      <div className="hist-detail-kpis">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="hist-detail-kpi">
+            <Sk style={{ height: 20, width: 36 }} rounded />
+            <Sk style={{ height: 11, width: 50 }} rounded />
+          </div>
+        ))}
+      </div>
+
+      {/* Table skeleton */}
+      <div className="hist-detail-table-wrap">
+        <table className="hist-detail-table">
+          <thead>
+            <tr>
+              {['#', 'Jugador', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'PTS'].map((h, i) => (
+                <th key={i}><Sk style={{ height: 10, width: i === 1 ? 60 : 20 }} rounded /></th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <tr key={i}>
+                <td><Sk style={{ height: 12, width: 18 }} rounded /></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sk circle style={{ width: 24, height: 24 }} />
+                    <Sk style={{ height: 12, width: 50 }} rounded />
+                  </div>
+                </td>
+                {Array.from({ length: 8 }).map((_, j) => (
+                  <td key={j}><Sk style={{ height: 12, width: 20 }} rounded /></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

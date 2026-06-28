@@ -6,18 +6,16 @@ export async function GET(request, { params }) {
   await initSchema()
   const { id } = await params
 
-  const tournament = await dbGet('SELECT * FROM tournaments WHERE id = ?', [id])
+  // Ejecutar queries en paralelo para reducir latencia
+  const [tournament, players, matchRows] = await Promise.all([
+    dbGet('SELECT * FROM tournaments WHERE id = ?', [id]),
+    dbAll('SELECT name, disabled FROM tournament_players WHERE tournament_id = ? ORDER BY id', [id]),
+    dbAll('SELECT match_key, round, stage, home, away, home_goals, away_goals, played, penalty_winner, home_penalties, away_penalties FROM matches WHERE tournament_id = ? ORDER BY round, id', [id]),
+  ])
+
   if (!tournament) {
     return Response.json({ error: 'Torneo no encontrado' }, { status: 404 })
   }
-
-  const players = await dbAll(
-    'SELECT name, disabled FROM tournament_players WHERE tournament_id = ? ORDER BY id', [id]
-  )
-
-  const matchRows = await dbAll(
-    'SELECT match_key, round, stage, home, away, home_goals, away_goals, played, penalty_winner, home_penalties, away_penalties FROM matches WHERE tournament_id = ? ORDER BY round, id', [id]
-  )
 
   const roundsMap = {}
   for (const m of matchRows) {
@@ -36,7 +34,14 @@ export async function GET(request, { params }) {
   const standings = calcStandings(playerNames, fixture)
   const disabledPlayers = players.filter(p => p.disabled).map(p => p.name)
 
-  return Response.json({ tournament, players: playerNames, disabledPlayers, fixture, standings })
+  // Cache por 60s para torneos finalizados, 10s para activos
+  const cacheTime = tournament.status === 'finished' ? 60 : 10
+  return new Response(JSON.stringify({ tournament, players: playerNames, disabledPlayers, fixture, standings }), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`,
+    },
+  })
 }
 
 // PATCH /api/tournaments/:id

@@ -4,10 +4,12 @@ import { dbAll, initSchema } from '../../lib/db'
 export async function GET() {
   await initSchema()
 
+  // Solo considerar partidos de torneos tipo liga para las estadísticas históricas
+  // La copa tiene un sistema de eliminación directa que no aplica a tabla de puntos
   const allMatches = await dbAll(`
-    SELECT m.tournament_id, m.home, m.away, m.home_goals, m.away_goals, t.season, t.year
+    SELECT m.tournament_id, m.home, m.away, m.home_goals, m.away_goals, t.season, t.year, t.type
     FROM matches m JOIN tournaments t ON t.id = m.tournament_id
-    WHERE m.played = 1
+    WHERE m.played = 1 AND t.type = 'league'
   `)
 
   const statsMap = {}
@@ -27,7 +29,9 @@ export async function GET() {
     else { a.pp++ }
   }
 
-  const tournamentParticipation = await dbAll('SELECT name, COUNT(*) as count FROM tournament_players GROUP BY name')
+  const tournamentParticipation = await dbAll(
+    "SELECT tp.name, COUNT(*) as count FROM tournament_players tp JOIN tournaments t ON t.id = tp.tournament_id WHERE t.type = 'league' GROUP BY tp.name"
+  )
   for (const tp of tournamentParticipation) {
     if (statsMap[tp.name]) statsMap[tp.name].tournaments = tp.count
   }
@@ -36,7 +40,8 @@ export async function GET() {
     b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf
   )
 
-  const tournaments = await dbAll('SELECT id, season, year FROM tournaments ORDER BY year ASC, id ASC')
+  // Solo torneos de liga para los gráficos de puntos
+  const tournaments = await dbAll("SELECT id, season, year FROM tournaments WHERE type = 'league' ORDER BY year ASC, id ASC")
 
   const pointsByTournament = tournaments.map(t => {
     const matches = allMatches.filter(m => m.tournament_id === t.id)

@@ -1252,6 +1252,14 @@ tr.leader td { font-weight: 700; color: var(--text); }
 }
 
 /* Expanded detail panel */
+.hist-detail-expand {
+  overflow: hidden;
+  animation: histExpandIn 0.25s ease forwards;
+}
+@keyframes histExpandIn {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 2000px; }
+}
 .hist-detail {
   padding: 16px;
   background: var(--surface2);
@@ -1261,11 +1269,6 @@ tr.leader td { font-weight: 700; color: var(--text); }
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: histSlideDown 0.18s ease;
-}
-@keyframes histSlideDown {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 .hist-detail-empty { padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.82rem; }
 
