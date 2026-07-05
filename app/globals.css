@@ -2228,3 +2228,106 @@ tr.leader td { font-weight: 700; color: var(--text); }
 
 /* ── Penalty superscript ── */
 .bracket-pen-sup { font-size: 0.55em; font-weight: 600; color: var(--warning); vertical-align: super; margin-left: 2px; }
+
+/* ── Recopa auto-win ── */
+.recopa-auto-win {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  margin: 1rem;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.recopa-auto-win-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+.recopa-auto-win-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+.recopa-auto-win-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Recopa pending state ── */
+.recopa-pending-info {
+  padding: 1.5rem;
+  margin: 1rem;
+}
+.recopa-pending-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+.recopa-pending-participant {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 0.6rem;
+}
+.recopa-pending-participant-waiting {
+  border-style: dashed;
+  opacity: 0.7;
+}
+.recopa-pending-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+.recopa-pending-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+.recopa-pending-participant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+.recopa-pending-participant-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.recopa-pending-participant-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.recopa-pending-check {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.recopa-pending-live {
+  font-size: 0.75rem;
+}
+.recopa-pending-auto-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--warning);
+  margin: 1rem 0 0;
+  font-weight: 600;
+}

@@ -78,7 +78,7 @@ async function seed() {
   console.log('🔄 Generando Clausura 2026...\n')
 
   // Migración preventiva
-  try { await db.execute("ALTER TABLE tournaments ADD COLUMN type TEXT NOT NULL DEFAULT 'league' CHECK(type IN ('league','copa'))") } catch {}
+  try { await db.execute("ALTER TABLE tournaments ADD COLUMN type TEXT NOT NULL DEFAULT 'league' CHECK(type IN ('league','copa','recopa'))") } catch {}
   try { await db.execute("ALTER TABLE tournament_players ADD COLUMN seed_position INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE matches ADD COLUMN stage TEXT DEFAULT NULL") } catch {}
 

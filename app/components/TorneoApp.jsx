@@ -9,6 +9,7 @@ import HallOfFame from './HallOfFame'
 import HistoricalStats from './HistoricalStats'
 import HeadToHead from './HeadToHead'
 import CopaBracket from './CopaBracket'
+import RecopaBracket from './RecopaBracket'
 import { Sk } from './Skeleton'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
@@ -32,6 +33,12 @@ const SECTIONS = [
     key: 'copa',
     label: 'Copa',
     icon: '🏆',
+    tabs: [],
+  },
+  {
+    key: 'recopa',
+    label: 'Recopa',
+    icon: '🏅',
     tabs: [],
   },
   {
@@ -253,6 +260,11 @@ export default function TorneoApp() {
         {/* Copa */}
         {activeSection.key === 'copa' && (
           <CopaBracket />
+        )}
+
+        {/* Recopa */}
+        {activeSection.key === 'recopa' && (
+          <RecopaBracket />
         )}
 
         {/* Historial */}

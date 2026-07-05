@@ -154,10 +154,10 @@ export default function HallOfFame() {
                   <div className="history-details">
                     <span className="history-champion-name">{t.champion}</span>
                     <span className="history-tournament-name">
-                      {t.type === 'copa' ? '🏆 ' : '⚽ '}{t.name}
+                      {t.type === 'copa' ? '🏆 ' : t.type === 'recopa' ? '🏅 ' : '⚽ '}{t.name}
                     </span>
                   </div>
-                  <span className="history-trophy">{t.type === 'copa' ? '🏆' : '🏅'}</span>
+                  <span className="history-trophy">{t.type === 'copa' ? '🏆' : t.type === 'recopa' ? '🏅' : '🏅'}</span>
                 </div>
                 {t.top_scorer && (
                   <div className="history-scorer">

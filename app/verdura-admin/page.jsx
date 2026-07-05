@@ -118,6 +118,10 @@ function AdminPanel({ onLogout }) {
   const [copaData, setCopaData] = useState(null)
   const [copaLoading, setCopaLoading] = useState(false)
 
+  // Recopa state
+  const [recopaData, setRecopaData] = useState(null)
+  const [recopaLoading, setRecopaLoading] = useState(false)
+
   const notify = (msg) => {
     setNotification(msg)
     setTimeout(() => setNotification(''), 3000)
@@ -151,7 +155,22 @@ function AdminPanel({ onLogout }) {
       .finally(() => setCopaLoading(false))
   }, [])
 
-  useEffect(() => { loadData(); loadCopa() }, [loadData, loadCopa])
+  const loadRecopa = useCallback(() => {
+    setRecopaLoading(true)
+    fetch('/api/recopa')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.error) {
+          setRecopaData(data)
+        } else {
+          setRecopaData(null)
+        }
+      })
+      .catch(() => setRecopaData(null))
+      .finally(() => setRecopaLoading(false))
+  }, [])
+
+  useEffect(() => { loadData(); loadCopa(); loadRecopa() }, [loadData, loadCopa, loadRecopa])
 
   const standings = useMemo(() => calcStandings(players, fixture), [fixture, players])
 
@@ -302,6 +321,103 @@ function AdminPanel({ onLogout }) {
     }
   }
 
+  // ─── Recopa handlers ─────────────────────────────────────────────────────
+
+  const handleCreateRecopa = async () => {
+    // Buscar último campeón de liga y copa
+    const res = await fetch('/api/tournaments')
+    const tournaments = await res.json()
+    
+    const lastLeague = tournaments.find(t => t.type === 'league' && t.status === 'finished' && t.champion)
+    const lastCopa = tournaments.find(t => t.type === 'copa' && t.status === 'finished' && t.champion)
+
+    if (!lastLeague || !lastCopa) {
+      notify('❌ Se necesita un campeón de Liga y un campeón de Copa para crear la Recopa')
+      return
+    }
+
+    const leagueChamp = lastLeague.champion
+    const copaChamp = lastCopa.champion
+
+    const autoMsg = leagueChamp === copaChamp
+      ? `${leagueChamp} ganó ambos torneos, se le otorgará la Recopa automáticamente.`
+      : `Se enfrentarán: ${leagueChamp} (Liga) vs ${copaChamp} (Copa)`
+
+    if (!confirm(`¿Crear la Recopa?\n\n${autoMsg}`)) return
+
+    try {
+      const createRes = await fetch('/api/recopa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Recopa Los Verduras',
+          season: lastLeague.season || 'Clausura 2026',
+          year: lastLeague.year || 2026,
+          league_champion: leagueChamp,
+          copa_champion: copaChamp,
+        }),
+      })
+      const data = await createRes.json()
+      if (data.id) {
+        notify(data.autoWin ? `🏅 Recopa otorgada a ${data.champion}` : '🏅 Recopa creada exitosamente')
+        loadRecopa()
+      } else {
+        notify(`❌ ${data.error || 'Error al crear recopa'}`)
+      }
+    } catch {
+      notify('❌ Error de conexión')
+    }
+  }
+
+  const handleRecopaResult = async (homeGoals, awayGoals, penaltyWinner = null, homePenalties = null, awayPenalties = null) => {
+    try {
+      const res = await fetch('/api/recopa/save-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          home_goals: homeGoals,
+          away_goals: awayGoals,
+          penalty_winner: penaltyWinner,
+          home_penalties: homePenalties,
+          away_penalties: awayPenalties,
+          tournament_id: recopaData?.tournament?.id,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        notify(`🏅 ${data.winner} gana la Recopa!`)
+        loadRecopa()
+      } else {
+        notify(`❌ ${data.error || 'Error al guardar'}`)
+      }
+    } catch {
+      notify('❌ Error de conexión')
+    }
+  }
+
+  const handleRecopaReset = async () => {
+    if (!confirm('¿Resetear la Recopa?')) return
+
+    try {
+      const res = await fetch('/api/recopa/reset-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournament_id: recopaData?.tournament?.id,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        notify('🔄 Recopa reseteada')
+        loadRecopa()
+      } else {
+        notify(`❌ ${data.error}`)
+      }
+    } catch {
+      notify('❌ Error de conexión')
+    }
+  }
+
   if (loading) {
     return <div className="app"><div className="loading">Cargando torneo...</div></div>
   }
@@ -342,6 +458,7 @@ function AdminPanel({ onLogout }) {
           { key: 'fixture', label: '📋 Fixture' },
           { key: 'standings', label: '🏆 Posiciones' },
           { key: 'copa', label: '🏆 Copa' },
+          { key: 'recopa', label: '🏅 Recopa' },
         ].map(tab => (
           <button key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)}>
             {tab.label}
@@ -362,6 +479,15 @@ function AdminPanel({ onLogout }) {
             onCreateCopa={handleCreateCopa}
             onResult={handleCopaResult}
             onReset={handleCopaReset}
+          />
+        )}
+        {activeTab === 'recopa' && (
+          <AdminRecopa
+            recopaData={recopaData}
+            recopaLoading={recopaLoading}
+            onCreateRecopa={handleCreateRecopa}
+            onResult={handleRecopaResult}
+            onReset={handleRecopaReset}
           />
         )}
       </main>
@@ -703,6 +829,199 @@ function AdminCopaMatchCard({ match, onSave, onReset }) {
       {/* QF draw note */}
       {isQF && isDraw && (
         <p className="admin-copa-no-draw">⚖️ Empate: clasifica el mejor ubicado en la tabla de la liga</p>
+      )}
+
+      <div className="admin-match-actions">
+        <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
+          Guardar
+        </button>
+        {match.played && (
+          <button className="admin-btn-reset" onClick={onReset}>
+            Resetear
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Admin Recopa ────────────────────────────────────────────────────────────
+
+function AdminRecopa({ recopaData, recopaLoading, onCreateRecopa, onResult, onReset }) {
+  if (recopaLoading) {
+    return <div className="loading">Cargando Recopa...</div>
+  }
+
+  if (!recopaData) {
+    return (
+      <div className="admin-copa-create">
+        <div className="admin-copa-create-header">
+          <span className="admin-copa-create-icon">🏅</span>
+          <h3>Crear Recopa</h3>
+          <p>Enfrentamiento entre el último campeón de Liga y el último campeón de Copa</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            Si el mismo jugador ganó ambos títulos, la Recopa se otorga automáticamente.
+          </p>
+        </div>
+
+        <button className="admin-btn-create-copa" onClick={onCreateRecopa}>
+          🏅 Crear Recopa
+        </button>
+      </div>
+    )
+  }
+
+  // Recopa existe
+  const { tournament, match, champion } = recopaData
+  const isAutoWin = tournament.status === 'finished' && match && !match.played
+
+  return (
+    <div className="admin-copa">
+      <div className="admin-copa-header">
+        <h2>🏅 {tournament.name}</h2>
+        <p>{tournament.season} {tournament.year} — {tournament.status === 'finished' ? '✅ Finalizada' : '🟢 En curso'}</p>
+        {champion && <p className="admin-copa-champion">👑 Campeón: <strong>{champion}</strong></p>}
+        {isAutoWin && (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+            ⚡ Otorgada automáticamente (mismo campeón de Liga y Copa)
+          </p>
+        )}
+      </div>
+
+      {!isAutoWin && match && (
+        <div className="admin-copa-stage">
+          <h3 className="admin-copa-stage-title">🏅 Final de la Recopa</h3>
+          <AdminRecopaMatchCard
+            match={match}
+            onSave={(hg, ag, pw, hp, ap) => onResult(hg, ag, pw, hp, ap)}
+            onReset={onReset}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdminRecopaMatchCard({ match, onSave, onReset }) {
+  const [homeGoals, setHomeGoals] = useState(match.played ? match.homeGoals : '')
+  const [awayGoals, setAwayGoals] = useState(match.played ? match.awayGoals : '')
+  const [penaltyWinner, setPenaltyWinner] = useState(match.penaltyWinner ?? null)
+  const [homePen, setHomePen]     = useState(match.homePenalties ?? '')
+  const [awayPen, setAwayPen]     = useState(match.awayPenalties ?? '')
+
+  useEffect(() => {
+    setHomeGoals(match.played ? match.homeGoals : '')
+    setAwayGoals(match.played ? match.awayGoals : '')
+    setPenaltyWinner(match.penaltyWinner ?? null)
+    setHomePen(match.homePenalties ?? '')
+    setAwayPen(match.awayPenalties ?? '')
+  }, [match.played, match.homeGoals, match.awayGoals, match.penaltyWinner, match.homePenalties, match.awayPenalties])
+
+  const isDraw = homeGoals !== '' && awayGoals !== '' && Number(homeGoals) === Number(awayGoals)
+  const needsPenalty = isDraw
+
+  const penaltiesValid = !needsPenalty || (
+    penaltyWinner &&
+    homePen !== '' && awayPen !== '' &&
+    Number(homePen) >= 0 && Number(awayPen) >= 0 &&
+    Number(homePen) !== Number(awayPen) &&
+    (Number(homePen) > Number(awayPen) ? match.home : match.away) === penaltyWinner
+  )
+
+  const canSave = homeGoals !== '' && awayGoals !== '' &&
+    Number(homeGoals) >= 0 && Number(awayGoals) >= 0 && penaltiesValid
+
+  const handleSave = () => {
+    if (!canSave) return
+    onSave(
+      Number(homeGoals), Number(awayGoals),
+      needsPenalty ? penaltyWinner : null,
+      needsPenalty ? Number(homePen) : null,
+      needsPenalty ? Number(awayPen) : null,
+    )
+  }
+
+  return (
+    <div className={`admin-match-card ${match.played ? 'played' : 'pending'}`}>
+      <span className="admin-match-team admin-match-home">
+        <img src={`/players/${match.home.toLowerCase()}.png`} alt={match.home} className="avatar" />
+        {match.home}
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 4 }}>(Liga)</span>
+      </span>
+
+      <div className="admin-match-center">
+        <input
+          type="number" min="0" max="99"
+          value={homeGoals}
+          onChange={e => { setHomeGoals(e.target.value); setPenaltyWinner(null); setHomePen(''); setAwayPen('') }}
+          className="admin-score-input"
+          placeholder="–"
+        />
+        <span className="admin-score-sep">-</span>
+        <input
+          type="number" min="0" max="99"
+          value={awayGoals}
+          onChange={e => { setAwayGoals(e.target.value); setPenaltyWinner(null); setHomePen(''); setAwayPen('') }}
+          className="admin-score-input"
+          placeholder="–"
+        />
+      </div>
+
+      <span className="admin-match-team admin-match-away">
+        {match.away}
+        <img src={`/players/${match.away.toLowerCase()}.png`} alt={match.away} className="avatar" />
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 4 }}>(Copa)</span>
+      </span>
+
+      {/* Penalty inputs on draw */}
+      {needsPenalty && (
+        <div className="admin-penalty-selector">
+          <span className="admin-penalty-label">🎯 Penales (marcador):</span>
+          <div className="admin-penalty-score-row">
+            <span className="admin-penalty-player-label">{match.home}</span>
+            <input
+              type="number" min="0" max="99"
+              value={homePen}
+              onChange={e => {
+                const v = e.target.value
+                setHomePen(v)
+                if (v !== '' && awayPen !== '') {
+                  setPenaltyWinner(Number(v) > Number(awayPen) ? match.home : Number(awayPen) > Number(v) ? match.away : null)
+                }
+              }}
+              className="admin-score-input"
+              placeholder="–"
+            />
+            <span className="admin-score-sep">-</span>
+            <input
+              type="number" min="0" max="99"
+              value={awayPen}
+              onChange={e => {
+                const v = e.target.value
+                setAwayPen(v)
+                if (homePen !== '' && v !== '') {
+                  setPenaltyWinner(Number(v) > Number(homePen) ? match.away : Number(homePen) > Number(v) ? match.home : null)
+                }
+              }}
+              className="admin-score-input"
+              placeholder="–"
+            />
+            <span className="admin-penalty-player-label">{match.away}</span>
+          </div>
+          {penaltyWinner && (
+            <span className="admin-penalty-winner-note">✓ Gana <strong>{penaltyWinner}</strong></span>
+          )}
+          {homePen !== '' && awayPen !== '' && Number(homePen) === Number(awayPen) && (
+            <span className="admin-penalty-winner-note" style={{ color: 'var(--danger)' }}>Los penales no pueden empatar</span>
+          )}
+        </div>
+      )}
+
+      {/* Already played with penalties */}
+      {match.played && match.penaltyWinner && (
+        <p className="admin-copa-penalty-note">
+          🎯 Penales: {match.home} {match.homePenalties ?? '?'} – {match.awayPenalties ?? '?'} {match.away} · Gana <strong>{match.penaltyWinner}</strong>
+        </p>
       )}
 
       <div className="admin-match-actions">
