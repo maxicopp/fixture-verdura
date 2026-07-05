@@ -432,8 +432,8 @@ body {
 }
 .round-card:hover { border-color: var(--border-strong); }
 .round-card.expanded {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--accent-soft);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 .round-header {
   width: 100%;

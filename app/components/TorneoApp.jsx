@@ -362,7 +362,7 @@ function FixtureReadOnly({ fixture, disabledPlayers = [], histStats = {} }) {
             >
               <span className="round-title">Fecha {round.round}</span>
               <span className="round-badge">{played === total ? '✅' : `${played}/${total}`}</span>
-              <span className="round-chevron">{isExpanded ? '▲' : '▼'}</span>
+              <span className="round-chevron">▼</span>
             </button>
             {isExpanded && (
               <div className="match-day">
