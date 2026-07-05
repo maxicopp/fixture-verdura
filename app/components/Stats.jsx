@@ -87,10 +87,11 @@ function CustomTooltip({ active, payload, label }) {
       borderRadius: 10,
       padding: '10px 14px',
       fontSize: 13,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+      boxShadow: 'var(--shadow-lg)',
       minWidth: 140,
+      backdropFilter: 'blur(8px)',
     }}>
-      <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
+      <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
       {payload.map(p => (
         <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '3px 0' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
