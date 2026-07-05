@@ -34,7 +34,7 @@ export async function GET(request) {
     else draws++
 
     return {
-      tournament: `${m.season} ${m.year}`,
+      tournament: m.season,
       tournamentId: m.tournament_id,
       round: m.round,
       p1Goals: p1G,

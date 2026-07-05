@@ -113,86 +113,89 @@ export default function HeadToHead({ players }) {
 
       {data && !loading && (
         <div className="h2h-content">
-          {/* Score card principal */}
-          <div className="h2h-score-card">
-            <div className="h2h-score-side h2h-score-left">
-              <img src={`/players/${data.p1.toLowerCase()}.png`} alt={data.p1} className="h2h-score-avatar" />
-              <span className="h2h-score-name">{data.p1}</span>
-              <span className={`h2h-score-wins ${data.p1Wins > data.p2Wins ? 'h2h-score-leader' : ''}`}>
-                {data.p1Wins}
-              </span>
+          {/* Caja unificada: Score + Dominance + Stats */}
+          <div className="h2h-unified-card">
+            {/* Score card principal */}
+            <div className="h2h-score-section">
+              <div className="h2h-score-side h2h-score-left">
+                <img src={`/players/${data.p1.toLowerCase()}.png`} alt={data.p1} className="h2h-score-avatar" />
+                <span className="h2h-score-name">{data.p1}</span>
+                <span className={`h2h-score-wins ${data.p1Wins > data.p2Wins ? 'h2h-score-leader' : ''}`}>
+                  {data.p1Wins}
+                </span>
+              </div>
+              <div className="h2h-score-center">
+                <span className="h2h-score-draws">{data.draws}</span>
+                <span className="h2h-score-draws-label">Empates</span>
+              </div>
+              <div className="h2h-score-side h2h-score-right">
+                <span className={`h2h-score-wins ${data.p2Wins > data.p1Wins ? 'h2h-score-leader' : ''}`}>
+                  {data.p2Wins}
+                </span>
+                <span className="h2h-score-name">{data.p2}</span>
+                <img src={`/players/${data.p2.toLowerCase()}.png`} alt={data.p2} className="h2h-score-avatar" />
+              </div>
             </div>
-            <div className="h2h-score-center">
-              <span className="h2h-score-draws">{data.draws}</span>
-              <span className="h2h-score-draws-label">Empates</span>
-            </div>
-            <div className="h2h-score-side h2h-score-right">
-              <span className={`h2h-score-wins ${data.p2Wins > data.p1Wins ? 'h2h-score-leader' : ''}`}>
-                {data.p2Wins}
-              </span>
-              <span className="h2h-score-name">{data.p2}</span>
-              <img src={`/players/${data.p2.toLowerCase()}.png`} alt={data.p2} className="h2h-score-avatar" />
-            </div>
-          </div>
 
-          {/* Barra de dominio */}
-          <div className="h2h-dominance">
-            <div className="h2h-dominance-bar">
-              <div
-                className="h2h-dominance-segment h2h-dominance-p1"
-                style={{ width: data.total > 0 ? `${(data.p1Wins / data.total) * 100}%` : '0%' }}
-              >
-                <span className="h2h-dominance-pct">
+            {/* Barra de dominio */}
+            <div className="h2h-dominance">
+              <div className="h2h-dominance-bar">
+                <div
+                  className="h2h-dominance-segment h2h-dominance-p1"
+                  style={{ width: data.total > 0 ? `${(data.p1Wins / data.total) * 100}%` : '0%' }}
+                >
+                  <span className="h2h-dominance-pct">
+                    {data.total > 0 ? Math.round((data.p1Wins / data.total) * 100) : 0}%
+                  </span>
+                </div>
+                <div
+                  className="h2h-dominance-segment h2h-dominance-draw"
+                  style={{ width: data.total > 0 ? `${(data.draws / data.total) * 100}%` : '0%' }}
+                >
+                  <span className="h2h-dominance-pct">
+                    {data.draws > 0 ? `${Math.round((data.draws / data.total) * 100)}%` : ''}
+                  </span>
+                </div>
+                <div
+                  className="h2h-dominance-segment h2h-dominance-p2"
+                  style={{ width: data.total > 0 ? `${(data.p2Wins / data.total) * 100}%` : '0%' }}
+                >
+                  <span className="h2h-dominance-pct">
+                    {data.total > 0 ? Math.round((data.p2Wins / data.total) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats comparativos */}
+            <div className="h2h-compare-stats">
+              <div className="h2h-compare-row">
+                <span className={`h2h-compare-val ${data.p1Goals > data.p2Goals ? 'h2h-compare-better' : ''}`}>
+                  {data.p1Goals}
+                </span>
+                <span className="h2h-compare-label">Goles</span>
+                <span className={`h2h-compare-val ${data.p2Goals > data.p1Goals ? 'h2h-compare-better' : ''}`}>
+                  {data.p2Goals}
+                </span>
+              </div>
+              <div className="h2h-compare-row">
+                <span className={`h2h-compare-val ${data.p1Goals / Math.max(data.total, 1) > data.p2Goals / Math.max(data.total, 1) ? 'h2h-compare-better' : ''}`}>
+                  {(data.p1Goals / Math.max(data.total, 1)).toFixed(1)}
+                </span>
+                <span className="h2h-compare-label">Goles/partido</span>
+                <span className={`h2h-compare-val ${data.p2Goals / Math.max(data.total, 1) > data.p1Goals / Math.max(data.total, 1) ? 'h2h-compare-better' : ''}`}>
+                  {(data.p2Goals / Math.max(data.total, 1)).toFixed(1)}
+                </span>
+              </div>
+              <div className="h2h-compare-row">
+                <span className={`h2h-compare-val ${data.p1Wins > data.p2Wins ? 'h2h-compare-better' : ''}`}>
                   {data.total > 0 ? Math.round((data.p1Wins / data.total) * 100) : 0}%
                 </span>
-              </div>
-              <div
-                className="h2h-dominance-segment h2h-dominance-draw"
-                style={{ width: data.total > 0 ? `${(data.draws / data.total) * 100}%` : '0%' }}
-              >
-                <span className="h2h-dominance-pct">
-                  {data.draws > 0 ? `${Math.round((data.draws / data.total) * 100)}%` : ''}
-                </span>
-              </div>
-              <div
-                className="h2h-dominance-segment h2h-dominance-p2"
-                style={{ width: data.total > 0 ? `${(data.p2Wins / data.total) * 100}%` : '0%' }}
-              >
-                <span className="h2h-dominance-pct">
+                <span className="h2h-compare-label">% Victorias</span>
+                <span className={`h2h-compare-val ${data.p2Wins > data.p1Wins ? 'h2h-compare-better' : ''}`}>
                   {data.total > 0 ? Math.round((data.p2Wins / data.total) * 100) : 0}%
                 </span>
               </div>
-            </div>
-          </div>
-
-          {/* Stats comparativos */}
-          <div className="h2h-compare-stats">
-            <div className="h2h-compare-row">
-              <span className={`h2h-compare-val ${data.p1Goals > data.p2Goals ? 'h2h-compare-better' : ''}`}>
-                {data.p1Goals}
-              </span>
-              <span className="h2h-compare-label">Goles</span>
-              <span className={`h2h-compare-val ${data.p2Goals > data.p1Goals ? 'h2h-compare-better' : ''}`}>
-                {data.p2Goals}
-              </span>
-            </div>
-            <div className="h2h-compare-row">
-              <span className={`h2h-compare-val ${data.p1Goals / Math.max(data.total, 1) > data.p2Goals / Math.max(data.total, 1) ? 'h2h-compare-better' : ''}`}>
-                {(data.p1Goals / Math.max(data.total, 1)).toFixed(1)}
-              </span>
-              <span className="h2h-compare-label">Goles/partido</span>
-              <span className={`h2h-compare-val ${data.p2Goals / Math.max(data.total, 1) > data.p1Goals / Math.max(data.total, 1) ? 'h2h-compare-better' : ''}`}>
-                {(data.p2Goals / Math.max(data.total, 1)).toFixed(1)}
-              </span>
-            </div>
-            <div className="h2h-compare-row">
-              <span className={`h2h-compare-val ${data.p1Wins > data.p2Wins ? 'h2h-compare-better' : ''}`}>
-                {data.total > 0 ? Math.round((data.p1Wins / data.total) * 100) : 0}%
-              </span>
-              <span className="h2h-compare-label">% Victorias</span>
-              <span className={`h2h-compare-val ${data.p2Wins > data.p1Wins ? 'h2h-compare-better' : ''}`}>
-                {data.total > 0 ? Math.round((data.p2Wins / data.total) * 100) : 0}%
-              </span>
             </div>
           </div>
 
