@@ -1357,7 +1357,6 @@ tr.leader td { font-weight: 700; color: var(--text); }
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
-.hist-tournament-selected ~ * .hist-tournament-chevron,
 .hist-tournament-selected .hist-tournament-chevron {
   transform: rotate(180deg);
 }

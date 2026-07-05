@@ -352,9 +352,7 @@ export default function HistoricalStats() {
                     </div>
                   )}
                   {!t.champion && <span className="hist-tournament-active-badge">En curso</span>}
-                  <span className="hist-tournament-chevron">
-                    {selectedTournament === t.id ? '▲' : '▼'}
-                  </span>
+                  <span className="hist-tournament-chevron">▼</span>
                 </div>
               </button>
 
