@@ -21,7 +21,7 @@ import { DISABLED_PLAYERS } from '../lib/disabled-players'
 const SECTIONS = [
   {
     key: 'current',
-    label: 'Torneo Actual',
+    label: 'Liga',
     icon: '⚽',
     tabs: [
       { key: 'standings', label: 'Posiciones' },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -114,6 +115,7 @@ function SectionTitle({ children }) {
 // ─── main component ──────────────────────────────────────────────────────────
 
 export default function Stats({ fixture, standings, disabledPlayers = [] }) {
+  const router = useRouter()
   const allPlayers = standings.map(s => s.name)
   const [selectedPlayers, setSelectedPlayers] = useState(() => new Set(allPlayers))
 
@@ -247,7 +249,20 @@ export default function Stats({ fixture, standings, disabledPlayers = [] }) {
     return (
       <div className="stats">
         <h2>📊 Estadísticas</h2>
-        <p className="no-data">Todavía no hay partidos jugados. ¡Cargá resultados en el fixture!</p>
+        <div className="empty-state">
+          <span className="empty-state-icon">📋</span>
+          <p className="empty-state-title">Aún no hay partidos jugados</p>
+          <p className="empty-state-desc">
+            Las estadísticas se generan automáticamente a medida que se disputan los partidos de la liga.
+          </p>
+          <a
+            href="/?s=history"
+            className="empty-state-link"
+            onClick={(e) => { e.preventDefault(); router.replace('/?s=history', { scroll: false }) }}
+          >
+            📜 Ver estadísticas históricas
+          </a>
+        </div>
       </div>
     )
   }
