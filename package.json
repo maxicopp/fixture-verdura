@@ -7,12 +7,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "seed": "npx tsx app/lib/seed.ts",
     "seed-clausura": "npx tsx scripts/seed-clausura.ts",
     "sync": "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN npx tsx scripts/sync-from-turso.ts",
     "backup": "npx tsx scripts/backup-db.ts",
-    "restore": "npx tsx scripts/restore-db.ts"
+    "restore": "npx tsx scripts/restore-db.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "vitest related --run"
+    ]
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
@@ -24,9 +33,26 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@next/eslint-plugin-next": "^16.2.10",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3"
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.10",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

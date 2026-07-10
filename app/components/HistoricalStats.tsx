@@ -104,29 +104,27 @@ export default function HistoricalStats() {
         <div className="hist-section">
           <Sk style={{ height: 14, width: 200, marginBottom: 8 }} rounded />
           <Sk style={{ height: 11, width: 260, marginBottom: 16 }} rounded />
-          <div className="sk-section">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-wrapper">
+            <table className="hist-table">
               <thead>
                 <tr>
-                  {[20, 110, 28, 28, 28, 28, 28, 28, 28, 28, 36].map((w, i) => (
-                    <th key={i} style={{ padding: '8px', textAlign: 'left' }}>
-                      <Sk style={{ height: 10, width: w, display: 'block' }} rounded />
+                  {['#', 'Jugador', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'PTS'].map((_, i) => (
+                    <th key={i}>
+                      <Sk style={{ height: 10, width: i === 0 ? 16 : i === 1 ? 60 : 22, display: 'block' }} rounded />
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: 10 }}><Sk style={{ height: 12, width: 20 }} rounded /></td>
-                    <td style={{ padding: 10 }}>
-                      <div className="sk-player-row sk-player-row-sm">
-                        <Sk circle style={{ width: 28, height: 28 }} />
-                        <Sk style={{ height: 12, width: 55 }} rounded />
-                      </div>
+                  <tr key={i}>
+                    <td className="pos"><Sk style={{ height: 12, width: 18 }} rounded /></td>
+                    <td className="player-name">
+                      <Sk circle style={{ width: 28, height: 28 }} />
+                      <Sk style={{ height: 12, width: 55 }} rounded />
                     </td>
-                    {Array.from({ length: 9 }).map((_, j) => (
-                      <td key={j} style={{ padding: 10 }}><Sk style={{ height: 12, width: 22 }} rounded /></td>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <td key={j}><Sk style={{ height: 12, width: 22 }} rounded /></td>
                     ))}
                   </tr>
                 ))}
