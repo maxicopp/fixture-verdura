@@ -1,18 +1,41 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import {
+  generateToken,
+  verifyToken,
+  isRateLimited,
+  recordFailedAttempt,
+  clearAttempts,
+} from '../../../lib/auth'
 
-// Credenciales — mover a env vars en producción
-const ADMIN_USER = process.env.ADMIN_USER || 'verdura'
-const ADMIN_PASS = process.env.ADMIN_PASS || 'verdura2026'
 const SESSION_TOKEN = 'verdura-admin-session'
+
+// Credenciales — DEBEN estar en variables de entorno
+const ADMIN_USER = process.env.ADMIN_USER
+const ADMIN_PASS = process.env.ADMIN_PASS
 
 // POST /api/admin/auth — login
 export async function POST(request) {
+  if (!ADMIN_USER || !ADMIN_PASS) {
+    console.error('❌ ADMIN_USER y ADMIN_PASS no configurados en variables de entorno')
+    return Response.json({ ok: false, error: 'Configuración del servidor incompleta' }, { status: 500 })
+  }
+
+  // Rate limiting basado en IP
+  const headersList = await headers()
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+
+  if (isRateLimited(ip)) {
+    return Response.json(
+      { ok: false, error: 'Demasiados intentos. Intentá de nuevo en 15 minutos.' },
+      { status: 429 }
+    )
+  }
+
   const body = await request.json()
   const { username, password } = body
 
   if (username === ADMIN_USER && password === ADMIN_PASS) {
-    // Token simple basado en timestamp + secret
-    const token = Buffer.from(`${ADMIN_USER}:${Date.now()}`).toString('base64')
+    const token = generateToken(ADMIN_USER)
     const cookieStore = await cookies()
     cookieStore.set(SESSION_TOKEN, token, {
       httpOnly: true,
@@ -21,9 +44,11 @@ export async function POST(request) {
       maxAge: 60 * 60 * 8, // 8 horas
       path: '/',
     })
+    clearAttempts(ip)
     return Response.json({ ok: true })
   }
 
+  recordFailedAttempt(ip)
   return Response.json({ ok: false, error: 'Credenciales inválidas' }, { status: 401 })
 }
 
@@ -37,8 +62,9 @@ export async function DELETE() {
 // GET /api/admin/auth — verificar sesión
 export async function GET() {
   const cookieStore = await cookies()
-  const token = cookieStore.get(SESSION_TOKEN)
-  if (token?.value) {
+  const token = cookieStore.get(SESSION_TOKEN)?.value
+
+  if (verifyToken(token)) {
     return Response.json({ authenticated: true })
   }
   return Response.json({ authenticated: false }, { status: 401 })

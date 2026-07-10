@@ -1,26 +1,25 @@
-import { cookies } from 'next/headers'
 import { dbGet, dbRun, initSchema } from '../../../lib/db'
-
-const SESSION_TOKEN = 'verdura-admin-session'
-
-async function isAuthed() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get(SESSION_TOKEN)?.value
-}
+import { requireAuth, isValidGoals } from '../../../lib/auth'
 
 // POST /api/recopa/save-result
 // Es un solo partido con alargue y penales
 export async function POST(request) {
-  if (!(await isAuthed())) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = await requireAuth()
+  if (authError) return authError
 
   await initSchema()
   const body = await request.json()
   const { home_goals, away_goals, penalty_winner, home_penalties, away_penalties, tournament_id } = body
 
-  if (home_goals == null || away_goals == null) {
-    return Response.json({ error: 'Faltan campos (home_goals, away_goals)' }, { status: 400 })
+  if (!isValidGoals(home_goals) || !isValidGoals(away_goals)) {
+    return Response.json({ error: 'Valores de goles inválidos (deben ser enteros entre 0 y 99)' }, { status: 400 })
+  }
+
+  // Validar penales si se proporcionan
+  if (penalty_winner != null && home_penalties != null && away_penalties != null) {
+    if (!isValidGoals(home_penalties) || !isValidGoals(away_penalties)) {
+      return Response.json({ error: 'Valores de penales inválidos' }, { status: 400 })
+    }
   }
 
   // Obtener recopa activa
@@ -57,10 +56,10 @@ export async function POST(request) {
   await dbRun(
     "UPDATE matches SET home_goals = ?, away_goals = ?, played = 1, penalty_winner = ?, home_penalties = ?, away_penalties = ? WHERE tournament_id = ? AND match_key = 'recopa-final'",
     [
-      home_goals, away_goals,
+      Number(home_goals), Number(away_goals),
       isDraw ? winner : null,
-      isDraw ? (home_penalties ?? null) : null,
-      isDraw ? (away_penalties ?? null) : null,
+      isDraw ? (home_penalties != null ? Number(home_penalties) : null) : null,
+      isDraw ? (away_penalties != null ? Number(away_penalties) : null) : null,
       tid,
     ]
   )

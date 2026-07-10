@@ -1,26 +1,18 @@
-import { cookies } from 'next/headers'
 import { dbGet, dbAll, dbRun, initSchema } from '../../../lib/db'
+import { requireAuth, isValidGoals } from '../../../lib/auth'
 import { calcStandings } from '../../../lib/fixture'
-
-const SESSION_TOKEN = 'verdura-admin-session'
-
-async function isAuthed() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get(SESSION_TOKEN)?.value
-}
 
 // POST /api/admin/save-result
 export async function POST(request) {
-  if (!(await isAuthed())) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = await requireAuth()
+  if (authError) return authError
 
   await initSchema()
   const body = await request.json()
   const { match_key, home_goals, away_goals, tournament_id } = body
 
-  if (match_key == null || home_goals == null || away_goals == null) {
-    return Response.json({ error: 'Faltan campos' }, { status: 400 })
+  if (!match_key || !isValidGoals(home_goals) || !isValidGoals(away_goals)) {
+    return Response.json({ error: 'Faltan campos o valores inválidos (goles deben ser enteros entre 0 y 99)' }, { status: 400 })
   }
 
   // Obtener torneo activo si no se especifica
@@ -34,7 +26,7 @@ export async function POST(request) {
   // Guardar resultado
   await dbRun(
     'UPDATE matches SET home_goals = ?, away_goals = ?, played = 1 WHERE tournament_id = ? AND match_key = ?',
-    [home_goals, away_goals, tid, match_key]
+    [Number(home_goals), Number(away_goals), tid, match_key]
   )
 
   // ── Chequear si el torneo terminó ──────────────────────────────────────

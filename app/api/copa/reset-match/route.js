@@ -1,22 +1,18 @@
-import { cookies } from 'next/headers'
 import { dbGet, dbRun, initSchema } from '../../../lib/db'
-
-const SESSION_TOKEN = 'verdura-admin-session'
-
-async function isAuthed() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get(SESSION_TOKEN)?.value
-}
+import { requireAuth } from '../../../lib/auth'
 
 // POST /api/copa/reset-match
 export async function POST(request) {
-  if (!(await isAuthed())) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = await requireAuth()
+  if (authError) return authError
 
   await initSchema()
   const body = await request.json()
   const { match_key, tournament_id } = body
+
+  if (!match_key) {
+    return Response.json({ error: 'Falta match_key' }, { status: 400 })
+  }
 
   let tid = tournament_id
   if (!tid) {

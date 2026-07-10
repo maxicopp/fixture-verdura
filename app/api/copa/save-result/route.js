@@ -1,13 +1,8 @@
-import { cookies } from 'next/headers'
 import { dbGet, dbAll, dbRun, initSchema } from '../../../lib/db'
+import { requireAuth, isValidGoals } from '../../../lib/auth'
 import { resolveCopaBracket, getCopaChampion } from '../../../lib/fixture'
 
 const SESSION_TOKEN = 'verdura-admin-session'
-
-async function isAuthed() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get(SESSION_TOKEN)?.value
-}
 
 // Cuartos: empate clasifica por seed de liga
 // Semis y Final: partido definitivo — empate requiere penalty_winner
@@ -42,16 +37,22 @@ async function resolveWinner(matchKey, home, away, homeGoals, awayGoals, penalty
 
 // POST /api/copa/save-result
 export async function POST(request) {
-  if (!(await isAuthed())) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = await requireAuth()
+  if (authError) return authError
 
   await initSchema()
   const body = await request.json()
   const { match_key, home_goals, away_goals, penalty_winner, home_penalties, away_penalties, tournament_id } = body
 
-  if (match_key == null || home_goals == null || away_goals == null) {
-    return Response.json({ error: 'Faltan campos' }, { status: 400 })
+  if (!match_key || !isValidGoals(home_goals) || !isValidGoals(away_goals)) {
+    return Response.json({ error: 'Faltan campos o valores inválidos (goles deben ser enteros entre 0 y 99)' }, { status: 400 })
+  }
+
+  // Validar penales si se proporcionan
+  if (penalty_winner != null && home_penalties != null && away_penalties != null) {
+    if (!isValidGoals(home_penalties) || !isValidGoals(away_penalties)) {
+      return Response.json({ error: 'Valores de penales inválidos' }, { status: 400 })
+    }
   }
 
   // Obtener torneo copa activo
@@ -75,7 +76,7 @@ export async function POST(request) {
   }
 
   // Resolver ganador según la etapa
-  const resolution = await resolveWinner(match_key, match.home, match.away, home_goals, away_goals, penalty_winner ?? null, tid)
+  const resolution = await resolveWinner(match_key, match.home, match.away, Number(home_goals), Number(away_goals), penalty_winner ?? null, tid)
 
   if (resolution.error) {
     return Response.json({ error: resolution.error }, { status: 400 })
@@ -88,10 +89,10 @@ export async function POST(request) {
   await dbRun(
     'UPDATE matches SET home_goals = ?, away_goals = ?, played = 1, penalty_winner = ?, home_penalties = ?, away_penalties = ? WHERE tournament_id = ? AND match_key = ?',
     [
-      home_goals, away_goals,
+      Number(home_goals), Number(away_goals),
       isPenaltyMatch ? winner : null,
-      isPenaltyMatch ? (home_penalties ?? null) : null,
-      isPenaltyMatch ? (away_penalties ?? null) : null,
+      isPenaltyMatch ? (home_penalties != null ? Number(home_penalties) : null) : null,
+      isPenaltyMatch ? (away_penalties != null ? Number(away_penalties) : null) : null,
       tid, match_key,
     ]
   )

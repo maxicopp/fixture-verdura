@@ -1,6 +1,7 @@
 import { dbAll, dbGet, dbRun, initSchema } from '../../lib/db'
+import { requireAuth } from '../../lib/auth'
 
-// GET /api/recopa — obtener la recopa activa (o la más reciente)
+// GET /api/recopa — obtener la recopa activa (o la más reciente) — público
 export async function GET() {
   await initSchema()
 
@@ -73,16 +74,23 @@ export async function GET() {
   })
 }
 
-// POST /api/recopa — crear una recopa nueva
+// POST /api/recopa — crear una recopa nueva (requiere auth)
 // Body: { name, season, year, league_champion, copa_champion }
 // Si ambos campeones son el mismo, se otorga automáticamente
 export async function POST(request) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   await initSchema()
   const body = await request.json()
   const { name, season, year, league_champion, copa_champion } = body
 
   if (!name || !season || !year || !league_champion || !copa_champion) {
     return Response.json({ error: 'Faltan campos requeridos (name, season, year, league_champion, copa_champion)' }, { status: 400 })
+  }
+
+  if (typeof name !== 'string' || typeof season !== 'string' || typeof league_champion !== 'string' || typeof copa_champion !== 'string') {
+    return Response.json({ error: 'Campos deben ser texto' }, { status: 400 })
   }
 
   // Verificar que no haya una recopa activa ya
@@ -100,7 +108,7 @@ export async function POST(request) {
 
   const result = await dbRun(
     "INSERT INTO tournaments (name, season, year, type, status, champion, finished_at) VALUES (?, ?, ?, 'recopa', ?, ?, ?)",
-    [name, season, year, status, champion, finishedAt]
+    [name.trim(), season.trim(), Number(year), status, champion, finishedAt]
   )
   const tid = Number(result.lastInsertRowid)
 

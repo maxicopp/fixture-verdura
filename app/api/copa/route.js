@@ -1,7 +1,8 @@
 import { dbAll, dbGet, dbRun, initSchema } from '../../lib/db'
+import { requireAuth } from '../../lib/auth'
 import { generateCopaBracket, resolveCopaBracket, getCopaChampion } from '../../lib/fixture'
 
-// GET /api/copa — obtener la copa activa (o la más reciente)
+// GET /api/copa — obtener la copa activa (o la más reciente) — público
 export async function GET() {
   await initSchema()
 
@@ -64,8 +65,11 @@ export async function GET() {
   })
 }
 
-// POST /api/copa — crear una copa nueva basada en standings del torneo de liga
+// POST /api/copa — crear una copa nueva basada en standings del torneo de liga (requiere auth)
 export async function POST(request) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   await initSchema()
   const body = await request.json()
   const { name, season, year, standings } = body
@@ -74,13 +78,17 @@ export async function POST(request) {
     return Response.json({ error: 'Se necesitan al menos 6 jugadores con posiciones' }, { status: 400 })
   }
 
+  if (typeof name !== 'string' || typeof season !== 'string') {
+    return Response.json({ error: 'Campos name y season deben ser texto' }, { status: 400 })
+  }
+
   // Generar bracket
   const bracketMatches = generateCopaBracket(standings)
 
   // Crear torneo tipo copa
   const result = await dbRun(
     "INSERT INTO tournaments (name, season, year, type, status) VALUES (?, ?, ?, 'copa', 'active')",
-    [name, season, year]
+    [name.trim(), season.trim(), Number(year)]
   )
   const tid = Number(result.lastInsertRowid)
 

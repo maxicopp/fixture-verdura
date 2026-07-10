@@ -1,18 +1,10 @@
-import { cookies } from 'next/headers'
 import { dbGet, dbRun, initSchema } from '../../../lib/db'
-
-const SESSION_TOKEN = 'verdura-admin-session'
-
-async function isAuthed() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get(SESSION_TOKEN)?.value
-}
+import { requireAuth } from '../../../lib/auth'
 
 // POST /api/recopa/reset-match
 export async function POST(request) {
-  if (!(await isAuthed())) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = await requireAuth()
+  if (authError) return authError
 
   await initSchema()
   const body = await request.json()

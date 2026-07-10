@@ -1,7 +1,8 @@
 import { dbGet, dbAll, dbRun, initSchema } from '../../../lib/db'
+import { requireAuth, isValidGoals } from '../../../lib/auth'
 import { calcStandings } from '../../../lib/fixture'
 
-// GET /api/tournaments/:id
+// GET /api/tournaments/:id (público)
 export async function GET(request, { params }) {
   await initSchema()
   const { id } = await params
@@ -44,32 +45,44 @@ export async function GET(request, { params }) {
   })
 }
 
-// PATCH /api/tournaments/:id
+// PATCH /api/tournaments/:id (requiere auth)
 export async function PATCH(request, { params }) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   await initSchema()
   const { id } = await params
   const body = await request.json()
 
   if (body.action === 'finish') {
     const { champion, top_scorer, top_scorer_goals } = body
+    if (!champion || typeof champion !== 'string') {
+      return Response.json({ error: 'Se requiere un campeón válido' }, { status: 400 })
+    }
     await dbRun(
       "UPDATE tournaments SET status = 'finished', champion = ?, top_scorer = ?, top_scorer_goals = ?, finished_at = datetime('now') WHERE id = ?",
-      [champion, top_scorer || null, top_scorer_goals || 0, id]
+      [champion.trim(), top_scorer || null, top_scorer_goals || 0, id]
     )
     return Response.json({ message: 'Torneo finalizado' })
   }
 
   if (body.action === 'result') {
     const { match_key, home_goals, away_goals } = body
+    if (!match_key || !isValidGoals(home_goals) || !isValidGoals(away_goals)) {
+      return Response.json({ error: 'Campos inválidos (goles deben ser enteros entre 0 y 99)' }, { status: 400 })
+    }
     await dbRun(
       'UPDATE matches SET home_goals = ?, away_goals = ?, played = 1 WHERE tournament_id = ? AND match_key = ?',
-      [home_goals, away_goals, id, match_key]
+      [Number(home_goals), Number(away_goals), id, match_key]
     )
     return Response.json({ message: 'Resultado guardado' })
   }
 
   if (body.action === 'reset') {
     const { match_key } = body
+    if (!match_key) {
+      return Response.json({ error: 'Falta match_key' }, { status: 400 })
+    }
     await dbRun(
       'UPDATE matches SET home_goals = NULL, away_goals = NULL, played = 0 WHERE tournament_id = ? AND match_key = ?',
       [id, match_key]
