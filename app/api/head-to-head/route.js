@@ -12,12 +12,12 @@ export async function GET(request) {
   }
 
   const matches = await dbAll(`
-    SELECT m.home, m.away, m.home_goals, m.away_goals, m.round,
-           t.id as tournament_id, t.season, t.year, t.name as tournament_name
+    SELECT m.home, m.away, m.home_goals, m.away_goals, m.round, m.stage,
+           t.id as tournament_id, t.season, t.year, t.name as tournament_name, t.type as tournament_type
     FROM matches m JOIN tournaments t ON t.id = m.tournament_id
     WHERE m.played = 1
       AND ((m.home = ? AND m.away = ?) OR (m.home = ? AND m.away = ?))
-    ORDER BY t.year ASC, t.id ASC, m.round ASC
+    ORDER BY t.year DESC, t.id DESC, m.round DESC
   `, [p1, p2, p2, p1])
 
   let p1Wins = 0, p2Wins = 0, draws = 0, p1Goals = 0, p2Goals = 0
@@ -33,10 +33,18 @@ export async function GET(request) {
     else if (p2G > p1G) p2Wins++
     else draws++
 
+    // Liga: show season (e.g. "Apertura 2026")
+    // Copa/Recopa: show name + season (e.g. "Copa Los Verduras Apertura 2026")
+    const tournamentLabel = m.tournament_type === 'league'
+      ? m.season
+      : `${m.tournament_name} ${m.season}`
+
     return {
-      tournament: m.season,
+      tournament: tournamentLabel,
       tournamentId: m.tournament_id,
+      tournamentType: m.tournament_type,
       round: m.round,
+      stage: m.stage,
       p1Goals: p1G,
       p2Goals: p2G,
       p1IsHome,

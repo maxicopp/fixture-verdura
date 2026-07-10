@@ -211,11 +211,19 @@ export default function HeadToHead({ players }) {
               {data.matches.map((m, i) => {
                 const p1Won = m.p1Goals > m.p2Goals
                 const p2Won = m.p2Goals > m.p1Goals
+                const stageLabels = {
+                  quarterfinal: 'Cuartos',
+                  semifinal: 'Semifinal',
+                  final: 'Final',
+                }
+                const roundLabel = m.stage && stageLabels[m.stage]
+                  ? stageLabels[m.stage]
+                  : `Fecha ${m.round}`
                 return (
                   <div key={i} className={`h2h-match-item ${p1Won ? 'h2h-match-p1win' : p2Won ? 'h2h-match-p2win' : 'h2h-match-draw'}`}>
                     <div className="h2h-match-meta">
                       <span className="h2h-match-tournament">{m.tournament}</span>
-                      <span className="h2h-match-round">Fecha {m.round}</span>
+                      <span className="h2h-match-round">{roundLabel}</span>
                     </div>
                     <div className="h2h-match-result">
                       <span className={`h2h-match-name ${p1Won ? 'h2h-match-winner-name' : ''}`}>
