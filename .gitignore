@@ -12,3 +12,6 @@ torneo.db-shm
 # Environment
 .env
 .env.local
+
+# Backups (versionados en git para tener historial)
+# backups/

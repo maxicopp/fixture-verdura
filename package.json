@@ -10,7 +10,9 @@
     "lint": "next lint",
     "seed": "npx tsx app/lib/seed.ts",
     "seed-clausura": "npx tsx scripts/seed-clausura.ts",
-    "sync": "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN npx tsx scripts/sync-from-turso.ts"
+    "sync": "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN npx tsx scripts/sync-from-turso.ts",
+    "backup": "npx tsx scripts/backup-db.ts",
+    "restore": "npx tsx scripts/restore-db.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
