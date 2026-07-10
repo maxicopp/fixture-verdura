@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { dbGet, dbAll, dbRun, initSchema } from '../../../lib/db'
 import { requireAuth, isValidGoals } from '../../../lib/auth'
 import { calcStandings } from '../../../lib/fixture'
-import type { Round, Match } from '../../../types'
+import type { Round } from '../../../types'
 
 // GET /api/tournaments/:id (público)
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

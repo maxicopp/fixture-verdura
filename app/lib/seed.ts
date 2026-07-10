@@ -2,7 +2,7 @@
  * Seed script — carga el torneo actual desde data.json.
  * Ejecutar con: npx tsx app/lib/seed.ts
  */
-import { getDb, initSchema, dbRun } from './db'
+import { initSchema, dbRun } from './db'
 import { readFileSync } from 'fs'
 import path from 'path'
 

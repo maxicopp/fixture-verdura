@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Standings from '../components/Standings'
 import { calcStandings } from '../lib/fixture'
-import type { Round, Standing, Match, CopaData, CopaBracketMatch, RecopaData, RecopaMatch, Tournament } from '../types'
+import type { Round, Standing, Match, CopaBracketMatch, RecopaMatch, Tournament } from '../types'
 
 interface CopaDataState {
   tournament: Tournament
@@ -127,7 +127,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('fixture')
   const [notification, setNotification] = useState('')
-  const [saving, setSaving] = useState(false)
 
   // Copa state
   const [copaData, setCopaData] = useState<CopaDataState | null>(null)
@@ -196,7 +195,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   const handleResult = async (roundIdx: number, matchIdx: number, homeGoals: number, awayGoals: number) => {
     const match = fixture[roundIdx].matches[matchIdx]
-    setSaving(true)
 
     try {
       const res = await fetch('/api/admin/save-result', {
@@ -222,8 +220,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       }
     } catch {
       notify('❌ Error de conexión')
-    } finally {
-      setSaving(false)
     }
   }
 

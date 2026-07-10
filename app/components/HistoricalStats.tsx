@@ -6,7 +6,7 @@ import {
   BarChart, Bar,
 } from 'recharts'
 import { Sk, SkChart } from './Skeleton'
-import type { HistoricalStatsData, Tournament, Round, Match } from '../types'
+import type { HistoricalStatsData, Tournament, Round } from '../types'
 
 const PLAYER_COLORS: Record<string, string> = {
   Max:     '#4f6df5',
@@ -48,7 +48,6 @@ export default function HistoricalStats() {
   const [loading, setLoading] = useState(true)
   const [selectedTournament, setSelectedTournament] = useState<number | null>(null)
   const [detailCache, setDetailCache] = useState<Record<number, { tournament: Tournament; standings: Array<{ name: string; pj: number; pg: number; pe: number; pp: number; gf: number; gc: number; pts: number }>; fixture: Round[] }>>({})
-  const [detailLoading, setDetailLoading] = useState(false)
   const [tournaments, setTournaments] = useState<Tournament[]>([])
 
   useEffect(() => {
@@ -82,14 +81,12 @@ export default function HistoricalStats() {
     // Si ya está en cache, no hacer fetch
     if (detailCache[id]) return
 
-    setDetailLoading(true)
     fetch(`/api/tournaments/${id}`)
       .then(r => r.json())
       .then(detail => {
         setDetailCache(prev => ({ ...prev, [id]: detail }))
       })
       .catch(() => {})
-      .finally(() => setDetailLoading(false))
   }
 
   const tournamentDetail = selectedTournament ? detailCache[selectedTournament] : null
@@ -176,7 +173,7 @@ export default function HistoricalStats() {
     )
   }
 
-  const { historicalTable, pointsByTournament, titlesMap, totalTournaments } = data
+  const { historicalTable, pointsByTournament } = data
   const players = historicalTable.map(s => s.name)
 
   // Puntos acumulados a lo largo de los torneos
@@ -522,7 +519,7 @@ function TournamentDetailSkeleton() {
         <table className="hist-detail-table">
           <thead>
             <tr>
-              {['#', 'Jugador', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'PTS'].map((h, i) => (
+              {['#', 'Jugador', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'PTS'].map((_h, i) => (
                 <th key={i}><Sk style={{ height: 10, width: i === 1 ? 60 : 20 }} rounded /></th>
               ))}
             </tr>

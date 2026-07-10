@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Confetti from './Confetti'
 import { Sk } from './Skeleton'
-import type { RecopaData, RecopaMatch, Tournament } from '../types'
+import type { RecopaData, RecopaMatch } from '../types'
 
 const PLAYER_COLORS: Record<string, string> = {
   Max:     '#4f6df5',

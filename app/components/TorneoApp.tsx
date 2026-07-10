@@ -13,7 +13,7 @@ import RecopaBracket from './RecopaBracket'
 import { Sk } from './Skeleton'
 import { generateFixture, calcStandings } from '../lib/fixture'
 import { DISABLED_PLAYERS } from '../lib/disabled-players'
-import type { Round, Standing, HistStats, Odds, Match } from '../types'
+import type { Round, HistStats, Odds, Match } from '../types'
 
 // ─── Navegación: 2 niveles claros ───────────────────────────────────────────
 // Nivel 1: Contexto (Torneo Actual vs Historial vs Head to Head)

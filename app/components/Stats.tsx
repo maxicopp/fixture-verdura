@@ -8,7 +8,7 @@ import {
   LineChart, Line,
 } from 'recharts'
 
-import type { Round, Match, Standing, HistStats, Odds } from '../types'
+import type { Round, Standing } from '../types'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
