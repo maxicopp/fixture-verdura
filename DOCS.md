@@ -549,6 +549,11 @@ ADMIN_PASS=tu-password
 
 # Secret para tokens (opcional, usa ADMIN_PASS si no se define)
 ADMIN_SECRET=openssl-rand-hex-32
+
+# Backup automático (Vercel Cron → GitHub Gist)
+CRON_SECRET=openssl-rand-hex-32
+GITHUB_TOKEN=ghp_tu-token-con-scope-gist
+GITHUB_GIST_ID=id-del-gist-donde-guardar-backups
 ```
 
 ### Desarrollo local
@@ -581,6 +586,64 @@ Sin `TURSO_DATABASE_URL`, la app usa `file:torneo.db` automáticamente.
 | `seed` | `npx tsx app/lib/seed.ts` | Carga `data.json` a la DB |
 | `seed-clausura` | `npx tsx scripts/seed-clausura.ts` | Seed específico del Clausura |
 | `sync` | `npx tsx scripts/sync-from-turso.ts` | Sync desde Turso remoto |
+
+---
+
+## Backup Automático
+
+### Cómo funciona
+
+Un **Vercel Cron** llama a `/api/cron/backup` cada 6 horas. El endpoint:
+
+1. Vuelca todas las tablas de Turso (`tournaments`, `tournament_players`, `matches`) a un JSON
+2. Guarda el JSON como un nuevo archivo en un **GitHub Gist** privado
+3. Actualiza un `index.json` con la lista de backups disponibles
+4. Elimina backups con más de 7 días de antigüedad (mantiene los últimos 28)
+
+### Configuración (una sola vez)
+
+**1. Crear el Gist en GitHub**
+
+Ir a [gist.github.com](https://gist.github.com), crear un gist (puede ser vacío, privado), y copiar el ID de la URL:
+```
+https://gist.github.com/usuario/abc123def456
+                                 ↑↑↑↑↑↑↑↑↑↑↑↑
+                              GITHUB_GIST_ID
+```
+
+**2. Crear un GitHub Personal Access Token**
+
+Ir a [github.com/settings/tokens/new](https://github.com/settings/tokens/new?scopes=gist), marcar solo el scope `gist`, y copiar el token generado.
+
+**3. Agregar las variables de entorno en Vercel**
+
+En el dashboard de Vercel → Settings → Environment Variables:
+
+| Variable | Valor |
+|---|---|
+| `CRON_SECRET` | `openssl rand -hex 32` (cualquier string aleatorio) |
+| `GITHUB_TOKEN` | Token generado en el paso anterior |
+| `GITHUB_GIST_ID` | ID del gist del paso 1 |
+
+**4. Desplegar**
+
+El archivo `vercel.json` ya incluye la configuración del cron. Al hacer deploy, Vercel activa el schedule automáticamente.
+
+### Restaurar desde un backup
+
+```bash
+# 1. Descargar el archivo de backup desde el Gist
+# 2. Ejecutar el script de restauración
+TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... npx tsx scripts/restore-db.ts backups/backup-2026-07-26T...json
+```
+
+### Hacer un backup manual
+
+El endpoint acepta el header de autorización, así que se puede invocar manualmente:
+
+```bash
+curl -H "Authorization: Bearer TU_CRON_SECRET" https://fixture-verdura.vercel.app/api/cron/backup
+```
 
 ---
 
