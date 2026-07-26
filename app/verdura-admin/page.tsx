@@ -601,7 +601,7 @@ function AdminMatchCard({ match, onSave, onReset }: { match: Match; onSave: (h: 
 
       <div className="admin-match-actions">
         <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
-          Guardar
+          {match.played ? 'Actualizar' : 'Guardar'}
         </button>
         {match.played && (
           <button className="admin-btn-reset" onClick={onReset}>
@@ -855,7 +855,7 @@ function AdminCopaMatchCard({ match, onSave, onReset }: {
 
       <div className="admin-match-actions">
         <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
-          Guardar
+          {match.played ? 'Actualizar' : 'Guardar'}
         </button>
         {match.played && (
           <button className="admin-btn-reset" onClick={onReset}>
@@ -1058,7 +1058,7 @@ function AdminRecopaMatchCard({ match, onSave, onReset }: {
 
       <div className="admin-match-actions">
         <button className="admin-btn-save" onClick={handleSave} disabled={!canSave}>
-          Guardar
+          {match.played ? 'Actualizar' : 'Guardar'}
         </button>
         {match.played && (
           <button className="admin-btn-reset" onClick={onReset}>
