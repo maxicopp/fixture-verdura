@@ -5,6 +5,76 @@ import Standings from '../components/Standings'
 import { calcStandings } from '../lib/fixture'
 import type { Round, Standing, Match, CopaBracketMatch, RecopaMatch, Tournament } from '../types'
 
+// ─── Confirm Modal Component ─────────────────────────────────────────────────
+
+interface ConfirmModalProps {
+  isOpen: boolean
+  title: string
+  message: string
+  details?: React.ReactNode
+  confirmText?: string
+  cancelText?: string
+  variant?: 'default' | 'danger' | 'warning'
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  details,
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  variant = 'default',
+  onConfirm,
+  onCancel,
+}: ConfirmModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) onCancel()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onCancel])
+
+  if (!isOpen) return null
+
+  return (
+    <div className="confirm-modal-overlay" onClick={onCancel}>
+      <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+        <div className="confirm-modal-header">
+          <h3 className="confirm-modal-title">{title}</h3>
+        </div>
+        <div className="confirm-modal-body">
+          <p className="confirm-modal-message">{message}</p>
+          {details && <div className="confirm-modal-details">{details}</div>}
+        </div>
+        <div className="confirm-modal-footer">
+          <button className="confirm-modal-btn confirm-modal-btn-cancel" onClick={onCancel}>
+            {cancelText}
+          </button>
+          <button 
+            className={`confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-${variant}`} 
+            onClick={onConfirm}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 interface CopaDataState {
   tournament: Tournament
   matches: CopaBracketMatch[]
@@ -136,6 +206,30 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [recopaData, setRecopaData] = useState<RecopaDataState | null>(null)
   const [recopaLoading, setRecopaLoading] = useState(false)
 
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    details?: React.ReactNode
+    confirmText?: string
+    variant?: 'default' | 'danger' | 'warning'
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  })
+
+  const showConfirm = (options: Omit<typeof confirmModal, 'isOpen'>) => {
+    setConfirmModal({ ...options, isOpen: true })
+  }
+
+  const hideConfirm = () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }))
+  }
+
   const notify = (msg: string) => {
     setNotification(msg)
     setTimeout(() => setNotification(''), 3000)
@@ -225,28 +319,40 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   const handleReset = async (roundIdx: number, matchIdx: number) => {
     const match = fixture[roundIdx].matches[matchIdx]
-    if (!confirm(`¿Resetear ${match.home} vs ${match.away}?`)) return
-
-    try {
-      const res = await fetch('/api/admin/reset-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ match_key: match.id }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setFixture(prev => {
-          const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
-          next[roundIdx].matches[matchIdx] = { ...match, homeGoals: null, awayGoals: null, played: false }
-          return next
+    
+    const doReset = async () => {
+      try {
+        const res = await fetch('/api/admin/reset-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ match_key: match.id }),
         })
-        notify('🔄 Partido reseteado')
-      } else {
-        notify(`❌ ${data.error}`)
+        const data = await res.json()
+        if (data.ok) {
+          setFixture(prev => {
+            const next = prev.map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }))
+            next[roundIdx].matches[matchIdx] = { ...match, homeGoals: null, awayGoals: null, played: false }
+            return next
+          })
+          notify('🔄 Partido reseteado')
+        } else {
+          notify(`❌ ${data.error}`)
+        }
+      } catch {
+        notify('❌ Error de conexión')
       }
-    } catch {
-      notify('❌ Error de conexión')
     }
+
+    showConfirm({
+      title: '🔄 Resetear partido',
+      message: `¿Resetear el resultado de ${match.home} vs ${match.away}?`,
+      confirmText: 'Resetear',
+      variant: 'danger',
+      onConfirm: () => {
+        hideConfirm()
+        doReset()
+      },
+    })
   }
 
   // ─── Copa handlers ───────────────────────────────────────────────────────
@@ -256,29 +362,50 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       notify('❌ Se necesitan al menos 6 jugadores con partidos jugados')
       return
     }
-    if (!confirm('¿Crear la Copa basada en las posiciones actuales del torneo?')) return
 
-    try {
-      const res = await fetch('/api/copa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Copa Los Verduras',
-          season: 'Clausura 2026',
-          year: 2026,
-          standings: standings,
-        }),
-      })
-      const data = await res.json()
-      if (data.id) {
-        notify('🏆 Copa creada exitosamente')
-        loadCopa()
-      } else {
-        notify(`❌ ${data.error || 'Error al crear copa'}`)
+    const createCopa = async () => {
+      try {
+        const res = await fetch('/api/copa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Copa Los Verduras',
+            season: 'Clausura 2026',
+            year: 2026,
+            standings: standings,
+          }),
+        })
+        const data = await res.json()
+        if (data.id) {
+          notify('🏆 Copa creada exitosamente')
+          loadCopa()
+        } else {
+          notify(`❌ ${data.error || 'Error al crear copa'}`)
+        }
+      } catch {
+        notify('❌ Error de conexión')
       }
-    } catch {
-      notify('❌ Error de conexión')
     }
+
+    showConfirm({
+      title: '🏆 Crear Copa',
+      message: '¿Crear la Copa basada en las posiciones actuales del torneo?',
+      details: (
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <p style={{ margin: '0 0 8px' }}>Se generará el bracket con:</p>
+          <ul style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.6 }}>
+            <li><strong>{standings[0]?.name}</strong> y <strong>{standings[1]?.name}</strong> pasan directo a semis</li>
+            <li>Cuartos: {standings[2]?.name} vs {standings[5]?.name}, {standings[3]?.name} vs {standings[4]?.name}</li>
+          </ul>
+        </div>
+      ),
+      confirmText: 'Crear Copa',
+      variant: 'default',
+      onConfirm: () => {
+        hideConfirm()
+        createCopa()
+      },
+    })
   }
 
   const handleCopaResult = async (matchKey: string, homeGoals: number, awayGoals: number, penaltyWinner: string | null = null, homePenalties: number | null = null, awayPenalties: number | null = null) => {
@@ -309,72 +436,152 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   }
 
   const handleCopaReset = async (matchKey: string) => {
-    if (!confirm('¿Resetear este partido de Copa? Se resetearán también los partidos posteriores dependientes.')) return
-
-    try {
-      const res = await fetch('/api/copa/reset-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          match_key: matchKey,
-          tournament_id: copaData?.tournament?.id,
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        notify('🔄 Partido de Copa reseteado')
-        loadCopa()
-      } else {
-        notify(`❌ ${data.error}`)
+    const doReset = async () => {
+      try {
+        const res = await fetch('/api/copa/reset-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            match_key: matchKey,
+            tournament_id: copaData?.tournament?.id,
+          }),
+        })
+        const data = await res.json()
+        if (data.ok) {
+          notify('🔄 Partido de Copa reseteado')
+          loadCopa()
+        } else {
+          notify(`❌ ${data.error}`)
+        }
+      } catch {
+        notify('❌ Error de conexión')
       }
-    } catch {
-      notify('❌ Error de conexión')
     }
+
+    showConfirm({
+      title: '🔄 Resetear partido',
+      message: '¿Estás seguro de resetear este partido de Copa?',
+      details: (
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+          Se resetearán también los partidos posteriores que dependan de este resultado.
+        </p>
+      ),
+      confirmText: 'Resetear',
+      variant: 'danger',
+      onConfirm: () => {
+        hideConfirm()
+        doReset()
+      },
+    })
   }
 
   // ─── Recopa handlers ─────────────────────────────────────────────────────
 
   const handleCreateRecopa = async () => {
-    // Buscar último campeón de liga y copa
-    const res = await fetch('/api/tournaments')
-    const tournaments: Tournament[] = await res.json()
-    
-    const lastLeague = tournaments.find(t => t.type === 'league' && t.status === 'finished' && t.champion)
-    const lastCopa = tournaments.find(t => t.type === 'copa' && t.status === 'finished' && t.champion)
-
-    if (!lastLeague || !lastCopa) {
-      notify('❌ Se necesita un campeón de Liga y un campeón de Copa para crear la Recopa')
-      return
-    }
-
-    const leagueChamp = lastLeague.champion
-    const copaChamp = lastCopa.champion
-
-    const autoMsg = leagueChamp === copaChamp
-      ? `${leagueChamp} ganó ambos torneos, se le otorgará la Recopa automáticamente.`
-      : `Se enfrentarán: ${leagueChamp} (Liga) vs ${copaChamp} (Copa)`
-
-    if (!confirm(`¿Crear la Recopa?\n\n${autoMsg}`)) return
-
     try {
-      const createRes = await fetch('/api/recopa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Recopa Los Verduras',
-          season: lastLeague.season || 'Clausura 2026',
-          year: lastLeague.year || 2026,
-          league_champion: leagueChamp,
-          copa_champion: copaChamp,
-        }),
-      })
-      const data = await createRes.json()
-      if (data.id) {
-        notify(data.autoWin ? `🏅 Recopa otorgada a ${data.champion}` : '🏅 Recopa creada exitosamente')
-        loadRecopa()
-      } else {
-        notify(`❌ ${data.error || 'Error al crear recopa'}`)
+      // Buscar último campeón de liga y copa
+      const res = await fetch('/api/tournaments')
+      if (!res.ok) {
+        notify('❌ Error al cargar los torneos')
+        return
       }
+      const tournaments: Tournament[] = await res.json()
+      
+      const lastLeague = tournaments.find(t => t.type === 'league' && t.status === 'finished' && t.champion)
+      const lastCopa = tournaments.find(t => t.type === 'copa' && t.status === 'finished' && t.champion)
+
+      // Mensajes de error más específicos
+      if (!lastLeague && !lastCopa) {
+        notify('❌ Se necesita un campeón de Liga y un campeón de Copa finalizados')
+        return
+      }
+      if (!lastLeague) {
+        notify('❌ Se necesita un campeón de Liga (torneo finalizado)')
+        return
+      }
+      if (!lastCopa) {
+        // Verificar si hay copa en curso
+        const copaActiva = tournaments.find(t => t.type === 'copa' && t.status === 'active')
+        if (copaActiva) {
+          notify('❌ La Copa aún está en curso. Debe finalizar para crear la Recopa.')
+        } else {
+          notify('❌ Se necesita un campeón de Copa (torneo finalizado)')
+        }
+        return
+      }
+
+      const leagueChamp = lastLeague.champion
+      const copaChamp = lastCopa.champion
+      const isAutoWin = leagueChamp === copaChamp
+
+      const createRecopa = async () => {
+        try {
+          const createRes = await fetch('/api/recopa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'Recopa Los Verduras',
+              season: lastLeague.season || 'Clausura 2026',
+              year: lastLeague.year || 2026,
+              league_champion: leagueChamp,
+              copa_champion: copaChamp,
+            }),
+          })
+          const data = await createRes.json()
+          if (data.id) {
+            notify(data.autoWin ? `🏅 Recopa otorgada a ${data.champion}` : '🏅 Recopa creada exitosamente')
+            loadRecopa()
+          } else {
+            notify(`❌ ${data.error || 'Error al crear recopa'}`)
+          }
+        } catch {
+          notify('❌ Error de conexión')
+        }
+      }
+
+      showConfirm({
+        title: '🏅 Crear Recopa',
+        message: isAutoWin 
+          ? 'El mismo jugador ganó ambos torneos. La Recopa se otorgará automáticamente.'
+          : '¿Crear la Recopa con estos participantes?',
+        details: isAutoWin ? (
+          <div className="confirm-modal-auto-win">
+            <span className="confirm-modal-auto-win-icon">🏆</span>
+            <p className="confirm-modal-auto-win-text">
+              <strong>{leagueChamp}</strong> ganó la Liga y la Copa, 
+              por lo que se le otorga la Recopa directamente.
+            </p>
+          </div>
+        ) : (
+          <div className="confirm-modal-match-preview">
+            <div className="confirm-modal-player">
+              <img 
+                src={`/players/${leagueChamp?.toLowerCase()}.png`} 
+                alt={leagueChamp || ''} 
+                className="confirm-modal-player-avatar"
+              />
+              <span className="confirm-modal-player-name">{leagueChamp}</span>
+              <span className="confirm-modal-player-label">Campeón Liga</span>
+            </div>
+            <span className="confirm-modal-vs">VS</span>
+            <div className="confirm-modal-player">
+              <img 
+                src={`/players/${copaChamp?.toLowerCase()}.png`} 
+                alt={copaChamp || ''} 
+                className="confirm-modal-player-avatar"
+              />
+              <span className="confirm-modal-player-name">{copaChamp}</span>
+              <span className="confirm-modal-player-label">Campeón Copa</span>
+            </div>
+          </div>
+        ),
+        confirmText: isAutoWin ? 'Otorgar Recopa' : 'Crear Recopa',
+        variant: 'default',
+        onConfirm: () => {
+          hideConfirm()
+          createRecopa()
+        },
+      })
     } catch {
       notify('❌ Error de conexión')
     }
@@ -407,26 +614,37 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   }
 
   const handleRecopaReset = async () => {
-    if (!confirm('¿Resetear la Recopa?')) return
-
-    try {
-      const res = await fetch('/api/recopa/reset-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tournament_id: recopaData?.tournament?.id,
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        notify('🔄 Recopa reseteada')
-        loadRecopa()
-      } else {
-        notify(`❌ ${data.error}`)
+    const doReset = async () => {
+      try {
+        const res = await fetch('/api/recopa/reset-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournament_id: recopaData?.tournament?.id,
+          }),
+        })
+        const data = await res.json()
+        if (data.ok) {
+          notify('🔄 Recopa reseteada')
+          loadRecopa()
+        } else {
+          notify(`❌ ${data.error}`)
+        }
+      } catch {
+        notify('❌ Error de conexión')
       }
-    } catch {
-      notify('❌ Error de conexión')
     }
+
+    showConfirm({
+      title: '🔄 Resetear Recopa',
+      message: '¿Estás seguro de resetear el resultado de la Recopa?',
+      confirmText: 'Resetear',
+      variant: 'danger',
+      onConfirm: () => {
+        hideConfirm()
+        doReset()
+      },
+    })
   }
 
   if (loading) {
@@ -439,6 +657,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="app">
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        details={confirmModal.details}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={hideConfirm}
+      />
+
       {/* Top bar del admin */}
       <div className="admin-topbar">
         <div className="admin-topbar-left">

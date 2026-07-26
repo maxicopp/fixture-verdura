@@ -5,7 +5,7 @@ export async function GET() {
   await initSchema()
 
   const tournament = await dbGet(
-    'SELECT * FROM tournaments ORDER BY id DESC LIMIT 1'
+    "SELECT * FROM tournaments WHERE type = 'league' ORDER BY id DESC LIMIT 1"
   )
 
   if (!tournament) {

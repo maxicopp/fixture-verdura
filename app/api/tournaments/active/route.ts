@@ -5,11 +5,13 @@ export async function GET() {
   await initSchema()
 
   let tournament = await dbGet(
-    "SELECT * FROM tournaments WHERE status = 'active' ORDER BY id DESC LIMIT 1"
+    "SELECT * FROM tournaments WHERE status = 'active' AND type = 'league' ORDER BY id DESC LIMIT 1"
   )
 
   if (!tournament) {
-    tournament = await dbGet('SELECT * FROM tournaments ORDER BY id DESC LIMIT 1')
+    tournament = await dbGet(
+      "SELECT * FROM tournaments WHERE type = 'league' ORDER BY id DESC LIMIT 1"
+    )
   }
 
   if (!tournament) {

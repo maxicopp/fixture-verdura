@@ -42,8 +42,8 @@ export async function initSchema() {
       name          TEXT NOT NULL,
       season        TEXT NOT NULL,
       year          INTEGER NOT NULL,
-      type          TEXT NOT NULL DEFAULT 'league' CHECK(type IN ('league', 'copa', 'recopa')),
-      status        TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'finished')),
+      type          TEXT NOT NULL DEFAULT 'league',
+      status        TEXT NOT NULL DEFAULT 'active',
       champion      TEXT,
       top_scorer    TEXT,
       top_scorer_goals INTEGER DEFAULT 0,
@@ -76,7 +76,7 @@ export async function initSchema() {
   `)
 
   // Agregar columnas nuevas si no existen (migraciones)
-  try { await db.execute("ALTER TABLE tournaments ADD COLUMN type TEXT NOT NULL DEFAULT 'league' CHECK(type IN ('league', 'copa', 'recopa'))") } catch { /* ya existe */ }
+  try { await db.execute("ALTER TABLE tournaments ADD COLUMN type TEXT NOT NULL DEFAULT 'league'") } catch { /* ya existe */ }
   try { await db.execute("ALTER TABLE tournament_players ADD COLUMN seed_position INTEGER DEFAULT 0") } catch { /* ya existe */ }
   try { await db.execute("ALTER TABLE matches ADD COLUMN stage TEXT DEFAULT NULL") } catch { /* ya existe */ }
   try { await db.execute("ALTER TABLE matches ADD COLUMN penalty_winner TEXT DEFAULT NULL") } catch { /* ya existe */ }
