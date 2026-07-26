@@ -1,6 +1,7 @@
 import { dbAll, initSchema } from '../../../lib/db'
 
 // GET /api/cron/backup
+// v2
 // Llamado automáticamente por Vercel Cron cada 6 horas.
 // Guarda un snapshot completo de Turso como JSON en un Gist de GitHub.
 //
