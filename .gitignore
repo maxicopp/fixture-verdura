@@ -15,3 +15,5 @@ torneo.db-shm
 
 # Backups (versionados en git para tener historial)
 # backups/
+.vercel
+.env*
