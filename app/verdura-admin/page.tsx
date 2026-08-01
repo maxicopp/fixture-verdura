@@ -194,6 +194,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [players, setPlayers] = useState<string[]>([])
   const [fixture, setFixture] = useState<Round[]>([])
+  const [tournamentId, setTournamentId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('fixture')
   const [notification, setNotification] = useState('')
@@ -243,6 +244,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         if (!data.error) {
           setPlayers(data.players)
           setFixture(data.fixture)
+          setTournamentId(data.tournament?.id ?? null)
         }
       })
       .finally(() => setLoading(false))
@@ -298,6 +300,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           match_key: match.id,
           home_goals: homeGoals,
           away_goals: awayGoals,
+          ...(tournamentId && { tournament_id: tournamentId }),
         }),
       })
       const data = await res.json()
@@ -325,7 +328,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         const res = await fetch('/api/admin/reset-match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ match_key: match.id }),
+          body: JSON.stringify({ match_key: match.id, ...(tournamentId && { tournament_id: tournamentId }) }),
         })
         const data = await res.json()
         if (data.ok) {
